@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能血细胞检测与分析系统</title>
+    <!-- 引入 Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- 引入 Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+    <!-- 引入 Font Awesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            /* 医疗主题色：玫瑰红与临床白 */
+            --primary-color: #e11d48; /* Rose-600 */
+            --primary-gradient: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+            --secondary-bg: #f8fafc; /* Slate-50 */
+            --card-bg: #ffffff;
+            --text-main: #334155; /* Slate-700 */
+            --text-light: #64748b; /* Slate-500 */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(225, 29, 72, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(225, 29, 72, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Microsoft YaHei', sans-serif;
+            background-color: var(--secondary-bg);
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+            min-height: 100vh;
+            /* 医疗风格顶部背景 - 柔和的淡红色渐变 */
+            background-image: linear-gradient(to bottom, #ffe4e6 0%, #f8fafc 300px);
+            background-repeat: no-repeat;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: 700;
+            color: #be123c; /* 深红色 */
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-info {
+            font-size: 14px;
+            color: var(--text-light);
+            background: #f1f5f9;
+            padding: 6px 16px;
+            border-radius: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        /* 头部欢迎区 */
+        .header-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            color: #0f172a;
+            margin-bottom: 12px;
+            font-size: 2.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .subtitle {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            max-width: 650px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* 统计卡片区 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 50px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+            border-color: #fda4af;
+        }
+
+        /* 卡片右侧装饰图标 - 使用 FontAwesome Unicode */
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 100px;
+            opacity: 0.08;
+            z-index: 0;
+            transform: rotate(-15deg);
+            color: var(--primary-color);
+        }
+
+        /* 1. 总样本数 - 试管图标 */
+        .stat-card.card-1::after {
+            content: '\f492'; /* fa-vial */
+        }
+
+        /* 2. 异常细胞 - 细菌/病毒图标 */
+        .stat-card.card-2::after {
+            content: '\e074'; /* fa-bacterium */
+        }
+
+        /* 3. 设备 - 显微镜图标 */
+        .stat-card.card-3::after {
+            content: '\f909'; /* fa-microscope */
+        }
+
+        /* 4. 状态 - 心跳/脉搏 */
+        .stat-card.card-4::after {
+            content: '\f21e'; /* fa-heartbeat */
+        }
+
+        .stat-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: var(--primary-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-unit {
+            font-size: 14px;
+            color: #94a3b8;
+            font-weight: normal;
+            -webkit-text-fill-color: #94a3b8;
+        }
+
+        /* 快捷入口区 */
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .link-item {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .link-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .link-icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: #ffe4e6; /* 浅粉色背景 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            color: var(--primary-color);
+            font-size: 20px;
+            transition: 0.3s;
+        }
+
+        .link-item:hover .link-icon-box {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .link-text {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .link-desc {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        .link-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f8fafc;
+        }
+
+        /* Iframe 容器 */
+        .iframe-container {
+            width: 100%;
+            height: calc(100vh - 100px);
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.4s ease-out;
+            border: 1px solid #e2e8f0;
+        }
+
+        .iframe-header {
+            padding: 15px 20px;
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .iframe-content {
+            flex: 1;
+            width: 100%;
+            border: none;
+        }
+
+        .btn-back {
+            padding: 8px 16px;
+            background: white;
+            color: var(--text-main);
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+
+        .btn-back:hover {
+            background: #f1f5f9;
+            color: var(--primary-color);
+            border-color: #fda4af;
+        }
+
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            padding-bottom: 20px;
+        }
+
+        /* 动画定义 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 状态颜色 */
+        .text-danger {
+            color: #ef4444 !important; /* Red-500 */
+            -webkit-text-fill-color: #ef4444 !important;
+        }
+
+        .text-success {
+            color: #10b981 !important; /* Emerald-500 */
+            -webkit-text-fill-color: #10b981 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- 导航栏 -->
+        <div class="navbar">
+            <div class="brand">
+                <i class="fas fa-heart-pulse"></i> OY 智慧医疗
+            </div>
+            <div class="user-info">
+                <i class="fas fa-user-doctor"></i> 检验医师: [{ username || 'Dr. Admin' }]
+            </div>
+        </div>
+
+        <!-- 首页仪表盘 -->
+        <div v-if="!iframeUrl" class="container">
+            <div class="header-section">
+                <h1>显微血细胞智能检测系统</h1>
+                <p class="subtitle">基于 YOLOv11 深度学习技术 · 自动识别红细胞、白细胞与血小板 · 辅助医学病理诊断</p>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card card-1">
+                    <div class="stat-content">
+                        <div class="stat-label">今日样本分析</div>
+                        <div class="stat-number">[{ today_count }]<span class="stat-unit"> 例</span></div>
+                        <div style="font-size: 12px; color: #10b981;"><i class="fas fa-arrow-up"></i> 效率提升 15%</div>
+                    </div>
+                </div>
+
+                <div class="stat-card card-2">
+                    <div class="stat-content">
+                        <div class="stat-label">异常细胞检出</div>
+                        <div class="stat-number text-danger">[{abnormal_count}]<span class="stat-unit"> 例</span></div>
+                        <div style="font-size: 12px; color: #ef4444;">疑似白血病细胞特征</div>
+                    </div>
+                </div>
+
+                <div class="stat-card card-3">
+                    <div class="stat-content">
+                        <div class="stat-label">接入显微设备</div>
+                        <div class="stat-number">[{device_count}]<span class="stat-unit"> 台</span></div>
+                        <div style="font-size: 12px; color: #64748b;">Olympus / Leica 在线</div>
+                    </div>
+                </div>
+
+                <div class="stat-card card-4">
+                    <div class="stat-content">
+                        <div class="stat-label">AI 引擎状态</div>
+                        <div class="stat-number text-success" style="font-size: 24px; line-height: 1.5;">[{engine_status}]</div>
+                        <div style="font-size: 12px; color: #10b981;">GPU 显存占用 [{gpu_usage}]%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能入口 -->
+            <div class="quick-links">
+                <div class="section-title"><i class="fas fa-microscope"></i> 检测工作台</div>
+                <div class="links-grid">
+                    <!-- 保持原有方法名 goVideoDetect，但在界面上显示为上传影像 -->
+                    <div class="link-item" @click="changeIframeSrc('goVideoDetect')">
+                        <div class="link-icon-box"><i class="fas fa-file-medical-alt"></i></div>
+                        <div>
+                            <div class="link-text">离线影像分析</div>
+                            <div class="link-desc">上传血涂片视频/图像文件</div>
+                        </div>
+                    </div>
+
+                    <div class="link-item" @click="changeIframeSrc('goDetectRecords/')">
+                        <div class="link-icon-box"><i class="fas fa-clipboard-list"></i></div>
+                        <div>
+                            <div class="link-text">历史诊断记录</div>
+                            <div class="link-desc">查询过往病理检测报告</div>
+                        </div>
+                    </div>
+
+                    <div class="link-item" @click="changeIframeSrc('goCameraDetect/')">
+                        <div class="link-icon-box"><i class="fas fa-video"></i></div>
+                        <div>
+                            <div class="link-text">实时显微镜检</div>
+                            <div class="link-desc">连接电子目镜进行实时计数</div>
+                        </div>
+                    </div>
+
+                    <div class="link-item link-disabled">
+                        <div class="link-icon-box" style="background: #f1f5f9; color: #94a3b8;"><i
+                                class="fas fa-dna"></i></div>
+                        <div>
+                            <div class="link-text" style="color: #94a3b8;">细胞分类图谱</div>
+                            <div class="link-desc">高级统计功能开发中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer>
+                <p>© 2025 Intelligent Medical Analysis System | v2.0.1 BioTech</p>
+                <p>Powered by AI Computer Vision & Hematology Dept</p>
+            </footer>
+        </div>
+
+        <!-- 内嵌页面显示区 -->
+        <div v-if="iframeUrl"
+            style="padding: 20px; height: 100vh; box-sizing: border-box; display: flex; justify-content: center;">
+            <div class="iframe-container">
+                <div class="iframe-header">
+                    <span style="font-weight: 600; font-size: 16px; color: var(--text-main);">
+                        <i class="fas fa-laptop-medical" style="margin-right: 8px; color: var(--primary-color);"></i>
+                        病理分析窗口
+                    </span>
+                    <button class="btn-back" @click="iframeUrl = ''">
+                        <i class="fas fa-arrow-left"></i> 结束分析
+                    </button>
+                </div>
+                <iframe :src="iframeUrl" class="iframe-content"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: "#app",
+            delimiters: ["[{", "}]"],
+            data() {
+                return {
+                    username: '',
+                    iframeUrl: '',
+                    serverUrl: 'http://127.0.0.1:8777/',
+                    today_count: 0,
+                    gpu_usage: 0, 
+                    engine_status: '检测中...',
+                    abnormal_count: 0,
+                    device_count: 0,
+                };
+            },
+            mounted() {
+                this.username = sessionStorage.getItem("username");
+                this.fetchDashboardStats();
+                setInterval(this.fetchDashboardStats, 5000);
+            },
+            methods: {
+                changeIframeSrc(url) {
+                    this.iframeUrl = this.serverUrl + url;
+                },
+                fetchDashboardStats() {
+                    // 后端接口地址保持不变，假设后端返回的字段逻辑通用
+                    axios({
+                        url: this.serverUrl + "get_dashboard_stats/",
+                        method: "get",
+                    }).then(res => {
+                        if(res.data.status === 200) {
+                            const stats = res.data.data;
+                            // 分别赋值给 Vue 的响应式变量
+                            this.today_count = stats.today_count;
+                            this.abnormal_count = stats.abnormal_count;
+                            this.device_count = stats.device_count;
+                            this.gpu_usage = stats.gpu_usage;
+                            this.engine_status = stats.engine_status;
+                            console.log("大屏数据加载成功:", stats);
+                        }
+                    }).catch(err => {
+                        console.error("获取数据失败:", err);
+                        this.today_count = "--"; 
+                    });
+                }
+            },
+        });
+    </script>
+</body>
+
+</html>

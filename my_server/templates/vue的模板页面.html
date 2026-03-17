@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../static/js/vue.js" type="text/javascript"></script>
+</head>
+<body>
+<!--为vue.js的对象创建一个容器只有在这个容器中才可以使用vue.js对象中的内容，不在容器中无效-->
+<div id="app">
+    {{ msg }}
+</div>
+<script>
+    new Vue({
+        // el 绑定属性 绑定作用域
+        el: '#app',
+        // data 定义变量
+        data(){
+            return {
+                msg: "进击的巨人"
+            }
+        }
+    });
+</script>
+</body>
+</html>

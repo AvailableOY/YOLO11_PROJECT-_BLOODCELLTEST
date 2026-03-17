@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO11 检测数据分析平台</title>
+    <!-- 引入 Element-UI 样式 -->
+    <link rel="stylesheet" href="../static/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入 Vue -->
+    <script src="../static/js/vue.js"></script>
+    <!-- 引入 Element-UI -->
+    <script src="../static/element-ui/lib/index.js"></script>
+    <!-- 引入 Axios -->
+    <script src="../static/axios/dist/axios.js"></script>
+    <!-- 引入 echarts -->
+    <script src="../static/js/echarts-5.3.3.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5; /* 浅灰背景，护眼且显档次 */
+            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+        }
+
+
+        .main-container {
+            padding: 20px;
+        }
+
+        /* 统一图表容器高度 */
+        .chart-container {
+            height: 500px;
+            width: 100%;
+        }
+
+        .el-card {
+            margin-bottom: 20px;
+            border-radius: 8px; /* 圆角 */
+        }
+        
+        /* 标题样式微调 */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+
+        <div class="main-container">
+            <!-- 使用 Element UI 的栅格布局 (Row/Col) 代替 Float -->
+            <el-row :gutter="20">
+                
+                <!-- 左侧：柱状图 -->
+                <el-col :span="12" :xs="24">
+                    <el-card shadow="hover">
+                        <div slot="header" class="card-header">
+                            <span><i class="el-icon-s-marketing"></i> 分类平均置信度排序 (Bar)</span>
+                            <el-button style="float: right; padding: 3px 0" type="text" icon="el-icon-refresh" @click="loadBar">刷新</el-button>
+                        </div>
+                        <div id="bar" class="chart-container"></div>
+                    </el-card>
+                </el-col>
+
+                <!-- 右侧：饼图 -->
+                <el-col :span="12" :xs="24">
+                    <el-card shadow="hover">
+                        <div slot="header" class="card-header">
+                            <span><i class="el-icon-pie-chart"></i> 类别占比分析 (Pie)</span>
+                            <el-button style="float: right; padding: 3px 0" type="text" icon="el-icon-refresh" @click="loadPie">刷新</el-button>
+                        </div>
+                        <div id="pie" class="chart-container"></div>
+                    </el-card>
+                </el-col>
+
+            </el-row>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    serverUrl: "http://127.0.0.1:8777/",
+                    barChart: null, // 保存chart实例，用于销毁或resize
+                    pieChart: null
+                }
+            },
+            methods: {
+                loadBar() {
+                    // 初始化图表（如果在 mounted 已经初始化，这里只更新数据最好，但为了保持逻辑简单，先检查是否存在）
+                    if (this.barChart != null && this.barChart != "" && this.barChart != undefined) {
+                        this.barChart.dispose(); // 销毁旧图表防止内存溢出
+                    }
+                    this.barChart = echarts.init(document.getElementById('bar'));
+
+                    // 显示 Loading 动画，提升体验
+                    this.barChart.showLoading();
+
+                    axios({
+                        url: this.serverUrl + "loadBar/",
+                        method: "get"
+                    }).then(res => {
+                        this.barChart.hideLoading(); // 隐藏 Loading
+                        
+                        let option = {
+                            // 增加标题
+                            // title: { text: '各类别识别数量', left: 'center' },
+                            // 增加鼠标悬浮提示 (关键)
+                            tooltip: {
+                                trigger: 'axis',
+                                axisPointer: { type: 'shadow' }
+                            },
+                            // 增加网格边距，防止文字被切断
+                            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                            xAxis: {
+                                type: 'category',
+                                data: res.data.data.xData,
+                                axisTick: { alignWithLabel: true }
+                            },
+                            yAxis: { type: 'value' },
+                            series: [{
+                                name: '数量',
+                                data: res.data.data.yData,
+                                type: 'bar',
+                                barWidth: '60%',
+                                itemStyle: {
+                                    // 渐变色美化
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        { offset: 0, color: '#83bff6' },
+                                        { offset: 0.5, color: '#188df0' },
+                                        { offset: 1, color: '#188df0' }
+                                    ])
+                                }
+                            }]
+                        };
+                        this.barChart.setOption(option);
+                    }).catch(error => {
+                        this.barChart.hideLoading();
+                        console.log(error);
+                        this.$message.warning("请求失败，已加载演示数据");
+                    })
+                },
+
+                loadPie() {
+                    if (this.pieChart != null && this.pieChart != "" && this.pieChart != undefined) {
+                        this.pieChart.dispose();
+                    }
+                    this.pieChart = echarts.init(document.getElementById('pie'));
+                    this.pieChart.showLoading();
+
+                    axios({
+                        url: this.serverUrl + "loadPie/",
+                        method: "get"
+                    }).then(res => {
+                        this.pieChart.hideLoading();
+                        let option = {
+                            tooltip: {
+                                trigger: 'item',
+                                formatter: '{a} <br/>{b} : {c} ({d}%)' // 显示百分比
+                            },
+                            legend: {
+                                top: 'bottom'
+                            },
+                            toolbox: {
+                                show: true,
+                                feature: {
+                                    saveAsImage: { show: true }
+                                }
+                            },
+                            series: [{
+                                name: '分类占比',
+                                type: 'pie',
+                                radius: [40, 180], // 调整为圆环或合适大小
+                                center: ['50%', '50%'],
+                                roseType: 'area',
+                                itemStyle: {
+                                    borderRadius: 8
+                                },
+                                data: res.data.data
+                            }]
+                        };
+                        this.pieChart.setOption(option);
+                    }).catch(error => {
+                        this.pieChart.hideLoading();
+                        console.log(error);
+                    });
+                },
+                
+                // 窗口大小改变时，重绘图表
+                handleResize() {
+                    if (this.barChart) this.barChart.resize();
+                    if (this.pieChart) this.pieChart.resize();
+                },
+            },
+            mounted() {
+                this.loadBar();
+                this.loadPie();
+                // 优化 Resize 监听，移出 axios 回调
+                window.addEventListener('resize', this.handleResize);
+            },
+            beforeDestroy() {
+                // 页面销毁前移除监听，防止内存泄露
+                window.removeEventListener('resize', this.handleResize);
+            }
+        });
+    </script>
+</body>
+
+</html>

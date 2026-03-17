@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>图片检测</title>
+  <!-- 引入 Element-UI 样式 -->
+  <link rel="stylesheet" href="../static/element-ui/lib/theme-chalk/index.css">
+  <!-- 引入 Vue -->
+  <script src="../static/js/vue.js"></script>
+  <!-- 引入 Element-UI -->
+  <script src="../static/element-ui/lib/index.js"></script>
+  <!-- 引入 Axios -->
+  <script src="../static/axios/dist/axios.js" type="text/javascript"></script>
+  <!-- 引入 echarts -->
+  <script src="../static/js/echarts-5.3.3.js"></script>
+
+  <style>
+    body {
+      background-color: #f5f7fa;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* height: 100vh; */
+      margin: 0;
+      padding: 20px;
+    }
+
+    #app {
+      display: flex;
+      gap: 24px;
+      /* 两栏之间的间距 */
+      max-width: 1000px;
+      width: 100%;
+      padding: 20px;
+      justify-content: center;
+      /* 整体居中 */
+    }
+
+    #bar {
+      width: 100%;
+      height: 100%;
+      /* 占满父容器高度 */
+    }
+
+    .card-container,
+    .chart-container {
+      flex: 1;
+      min-width: 320px;
+      max-width: 600px;
+      padding: 30px 40px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      border-radius: 16px;
+      background: #fff;
+      min-height: 400px;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 25px;
+      color: #409EFF;
+      letter-spacing: 1px;
+    }
+
+    .upload-demo {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .img-preview {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 15px;
+      flex-direction: column;
+      /* 让图片和文件名在竖直方向上排列 */
+    }
+
+    .img-preview img {
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
+      object-fit: cover;
+    }
+
+    .file-name {
+      margin-top: 10px;
+      /* 给文件名一些间距 */
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="card-container">
+      <div class="title">图片检测系统</div>
+
+      <el-upload class="upload-demo" ref="upload" action :auto-upload="false" :file-list="fileList"
+        :show-file-list="false" :on-change="handleChange">
+        <el-button slot="trigger" size="small" type="primary">选择图片</el-button>
+        <el-button style="margin-left: 10px;" size="small" type="success" @click="detectImg">执行检测</el-button>
+      </el-upload>
+
+      <!-- 图片展示 -->
+      <div class="img-preview">
+        <img v-show="chooseImg" :src="chooseImg" alt="预览" style="height: 300px; width: 300px;">
+        <!-- 图片下方显示文件名 -->
+        <div v-show="fileName" class="file-name">{{ fileName }}</div>
+        <!-- 检测结果展示 -->
+        <div v-if="resultUrl" style="margin-top: 20px;">
+          <img :src="resultUrl" alt="裂开" style="height: 300px; width: 300px;">
+        </div>
+      </div>
+
+    </div>
+    <div class="chart-container">
+      <h3 style="text-align: center; margin-bottom: 12px; color: #555;">检测统计</h3>
+      <div id="bar"></div>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data() {
+        return {
+          serverURL: "http://127.0.0.1:8777/",
+          fileList: [],
+          chooseImg: '',
+          fileName: '',  // 用来保存图片名称
+          loadingInstance: null, // loading 控制
+          resultUrl: '',
+        };
+      },
+      methods: {
+        handleChange(file, fileList) {
+          this.fileList = [];
+          this.fileList.push(file);
+          this.showImg();
+          this.resultUrl = '';
+        },
+        showImg() {
+          let file = this.fileList[0].raw;
+          let reader = new FileReader();
+          reader.onload = event => {
+            this.chooseImg = event.target.result;
+            // 提取文件名并显示在图片下方
+            this.fileName = this.fileList[0].name;  // 保存文件名
+          };
+          reader.readAsDataURL(file);
+        },
+        detectImg() {
+          if (!this.fileList.length) {
+            this.$message.warning("请先选择图片！");
+            return;
+          }
+          // 把文件内容上传到服务器 返回结果
+          // 传过去文件内容 和 用户名
+          // 一般上传文件时候 都通过把内容传到FormData中 然后把对象当作参数传递
+          this.loading = true;
+          let formData = new FormData();
+          let _this = this;
+          // 添加文件内容  file就是上传的文件的名字 服务器 通过这个名字取出来
+          formData.append("file", this.fileList[0].raw);
+          //  在添加用户名
+          formData.append("username", sessionStorage.getItem("username"));
+          // 发生axios post请求
+          axios({
+            url: this.serverURL + "detectImg/",
+            method: "post",
+            data: formData,
+            headers: { "Content-Type": "multipart/form-data" }
+          }).then(res => {
+            this.loading = false;
+            this.resultUrl = this.serverURL + res.data.data.result_url;
+            console.log(res.data);
+            this.$alert(res.data.data.result, '检测结果', {
+              confirmButtonText: '确定',
+            });
+            this.loadBar(); //检测完成后 重新加载柱状图
+          }).catch(error => {
+            this.loading = false;
+            console.log(error);
+            this.$message.error("图片检测失败！");
+          });
+        },
+        loadBar() { //用来编写实现柱状图的代码 这个需要被调用 一般情况直接在mounted里面调用
+          let _this = this;
+          // 初始化展示柱状图的容器
+          let myChart = echarts.init(document.getElementById('bar'));
+          //设置绘制柱状图的代码  --加上let 定义变量的标识符
+          // 发送请求，获取数据
+          axios({
+            url: this.serverURL + "LoadCurrentBar/",
+            method: "get"
+          }).then(res => {
+            let option = {
+              xAxis: {
+                type: 'category',
+                data: res.data.data.xData,
+                axisLabel: {
+                  show: true,        // 确保显示
+                  interval: 0,       // 强制显示所有标签（默认是 auto）
+                  rotate: 30,        // 旋转 30 度，防止重叠
+                  fontSize: 12,      // 可选：调整字体大小
+                  margin: 8          // 标签与轴线的距离
+                },
+                axisTick: {
+                  alignWithLabel: true  // 刻度线对齐标签
+                }
+              },
+              yAxis: {
+                type: 'value'
+              },
+              series: [
+                {
+                  data: res.data.data.yData,
+                  type: 'bar'
+                }
+              ]
+            };
+            // 绘制柱状图在容器
+            myChart.setOption(option);
+            //绘制柱状图在容器中，自适应窗口变化
+            window.addEventListener('resize', function () {
+              myChart.resize();
+            });
+          }).catch(error => {
+            console.log(error);
+            this.$message.error("柱状图加载失败！");
+          })
+        },
+      },
+      mounted() {
+        // this.loadBar();
+      }
+    });
+  </script>
+</body>
+
+</html>

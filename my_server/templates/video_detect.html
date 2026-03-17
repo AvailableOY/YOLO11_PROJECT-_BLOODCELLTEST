@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能视频检测平台</title>
+
+    <!-- 引入 Element UI -->
+    <link rel="stylesheet" href="../static/element-ui/lib/theme-chalk/index.css">
+    <!-- Vue -->
+    <script src="../static/js/vue.js"></script>
+    <!-- Element UI -->
+    <script src="../static/element-ui/lib/index.js"></script>
+    <!-- Axios -->
+    <script src="../static/axios/dist/axios.js"></script>
+    <!-- Echarts -->
+    <script src="../static/js/echarts-5.3.3.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #409EFF;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-sub: #606266;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --radius: 16px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-gradient);
+            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-main);
+        }
+
+        #app {
+            width: 100%;
+            max-width: 1200px;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            display: flex;
+            gap: 30px;
+        }
+
+        /* 通用卡片样式 */
+        .dashboard-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+        }
+
+        /* 左侧：控制与视频区 */
+        .control-panel {
+            flex: 1.2;
+            min-width: 350px;
+        }
+
+        /* 右侧：图表区 */
+        .chart-panel {
+            flex: 0.8;
+            min-width: 350px;
+        }
+
+        /* 标题样式 */
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ebeef5;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-header .icon-box {
+            width: 36px;
+            height: 36px;
+            background: rgba(64, 158, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--primary-color);
+            font-size: 18px;
+        }
+
+        /* 上传区域美化 */
+        .upload-zone {
+            border: 2px dashed #dcdfe6;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            background: #fbfdff;
+            transition: border-color 0.3s;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary-color);
+        }
+
+        .upload-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-sub);
+        }
+
+        .file-tag {
+            margin-top: 15px;
+            display: inline-flex;
+            align-items: center;
+            background: rgba(64, 158, 255, 0.1);
+            color: var(--primary-color);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            border: 1px solid rgba(64, 158, 255, 0.2);
+        }
+
+        /* 按钮组 */
+        .action-area {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .btn-glow {
+            box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
+            padding: 12px 40px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        /* 视频容器 */
+        .video-wrapper {
+            width: 100%;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16 / 9;
+            /* 保持比例 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .responsive-video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .video-placeholder {
+            color: #555;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-placeholder i {
+            font-size: 48px;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        /* 图表容器 */
+        #bar {
+            width: 100%;
+            height: 100%;
+            min-height: 450px;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 900px) {
+            #app {
+                flex-direction: column;
+            }
+
+            .control-panel,
+            .chart-panel {
+                width: 100%;
+            }
+
+            .video-wrapper {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- 左侧：上传与视频 -->
+        <div class="dashboard-card control-panel">
+            <div class="card-header">
+                <div class="icon-box"><i class="el-icon-video-camera-solid"></i></div>
+                <h2>视频上传与检测</h2>
+            </div>
+
+            <!-- 上传区域 -->
+            <div class="upload-zone">
+                <el-upload ref="upload" action="" :auto-upload="false" :show-file-list="false"
+                    accept="video/mp4, video/avi, video/mov, video/mkv" :on-change="handleFileChange">
+
+                    <div class="upload-placeholder" v-if="!selectedFileName">
+                        <i class="el-icon-upload" style="font-size: 40px; color: #c0c4cc;"></i>
+                        <span>点击选择或拖拽视频文件</span>
+                        <el-button size="small" type="primary" plain style="margin-top:10px;">选择文件</el-button>
+                    </div>
+
+                    <el-button v-else size="medium" type="primary" icon="el-icon-refresh">更换文件</el-button>
+                </el-upload>
+
+                <!-- 文件名展示 -->
+                <transition name="el-zoom-in-center">
+                    <div v-if="selectedFileName" class="file-tag">
+                        <i class="el-icon-document" style="margin-right: 5px;"></i>
+                        [{ selectedFileName }]
+                    </div>
+                </transition>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="action-area">
+                <el-button type="success" class="btn-glow" :loading="uploading" icon="el-icon-cpu" @click="uploadVideo">
+                    [{ uploading ? '处理中...' : '开始上传并检测' }]
+                </el-button>
+            </div>
+
+            <!-- 视频播放器 -->
+            <div class="video-wrapper">
+                <video id="video-player" class="responsive-video" controls v-show="videoLoaded">
+                </video>
+
+                <!-- 空状态占位 -->
+                <div class="video-placeholder" v-show="!videoLoaded">
+                    <i class="el-icon-film"></i>
+                    <span>等待视频加载...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：统计图表 -->
+        <div class="dashboard-card chart-panel">
+            <div class="card-header">
+                <div class="icon-box"><i class="el-icon-s-data"></i></div>
+                <h2>实时检测统计</h2>
+            </div>
+            <div id="bar"></div>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            delimiters: ["[{", "}]"],
+            data() {
+                return {
+                    serverUrl: "http://127.0.0.1:8777/",
+                    selectedFile: null,
+                    selectedFileName: '',
+                    uploading: false,
+                    task_id: '',
+                    isDetecting: false,
+                    videoLoaded: false // 新增状态控制视频显示
+                };
+            },
+            methods: {
+                handleFileChange(file) {
+                    this.selectedFileName = file.name;
+                    this.selectedFile = file.raw;
+                    // 重置视频状态
+                    this.videoLoaded = false;
+                },
+                async uploadVideo() {
+                    // 模拟/测试逻辑
+                    if (!this.selectedFile) {
+                        const videoUrl = this.serverUrl + 'static/upload/' + "1763609147.mp4";
+                        this.playVideo(videoUrl);
+                        this.$message.success({
+                            message: '✅ 测试模式：检测已启动',
+                            type: 'success',
+                            offset: 50
+                        });
+                        return;
+                    };
+
+                    this.uploading = true;
+                    const formData = new FormData();
+                    formData.append('file', this.selectedFile);
+
+                    try {
+                        const uploadRes = await axios.post(
+                            this.serverUrl + 'uploadVideo/',
+                            formData, { headers: { 'Content-Type': 'multipart/form-data' } }
+                        );
+
+                        if (uploadRes.data.status === 200 && uploadRes.data.task_id) {
+                            const taskId = uploadRes.data.task_id;
+                            this.task_id = taskId;
+                            this.$message.success('视频上传成功，开始分析...');
+
+                            // 播放上传后的原始视频
+                            const videoUrl = this.serverUrl + 'static/upload/' + taskId;
+                            this.playVideo(videoUrl);
+
+                            // 发起检测请求
+                            const detectRes = await axios.post(
+                                this.serverUrl + 'detectVideo/',
+                                { task_id: taskId },
+                                { headers: { 'Content-Type': 'application/json' } }
+                            );
+
+                            const { status, output_video } = detectRes.data;
+                            if (status === 200) {
+                                // 播放检测后的视频
+                                this.playVideo(this.serverUrl + output_video);
+                                this.$message.success({
+                                    message: '🎉 视频检测完成！',
+                                    duration: 5000
+                                });
+                            }
+                        } else {
+                            this.$message.error('上传失败，请检查服务器状态');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        this.$message.error('网络请求异常');
+                    } finally {
+                        this.uploading = false;
+                    }
+                },
+                playVideo(url) {
+                    const videoPlayer = document.getElementById('video-player');
+                    videoPlayer.src = url;
+                    videoPlayer.load();
+                    this.videoLoaded = true;
+                    // 自动尝试播放（浏览器可能拦截）
+                    videoPlayer.play().catch(() => { });
+                },
+                LoadBar() {
+                    let intervalId = null;
+                    this.isDetecting = true;
+
+                    // Echarts 初始化
+                    const chartDom = document.getElementById('bar');
+                    const myChart = echarts.init(chartDom);
+
+                    // 窗口大小改变时自适应
+                    window.addEventListener('resize', () => {
+                        myChart.resize();
+                    });
+
+                    const updateChart = () => {
+                        // 如果没有 task_id，暂时不请求数据，避免报错
+                        if (!this.task_id) return;
+
+                        axios.get(this.serverUrl + 'get_realtime_data/', {
+                            params: { task_id: this.task_id }
+                        }).then(response => {
+                            const { counts, isDetecting } = response.data;
+                            this.isDetecting = isDetecting;
+
+                            const categories = Object.keys(counts);
+                            const data = Object.values(counts);
+
+                            myChart.setOption({
+                                yAxis: { data: categories },
+                                series: [{ data: data }]
+                            });
+
+                            if (!this.isDetecting && intervalId) {
+                                clearInterval(intervalId);
+                                intervalId = null;
+                            }
+                        }).catch(console.error);
+                    };
+
+                    // 初始配置 - 更加美观的图表样式
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis',
+                            axisPointer: { type: 'shadow' },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            extraCssText: 'box-shadow: 0 2px 10px rgba(0,0,0,0.1);'
+                        },
+                        xAxis: {
+                            max: 'dataMax',
+                            axisLabel: { show: false },
+                            splitLine: { show: false }
+                        },
+                        yAxis: {
+                            type: 'category',
+                            data: [],
+                            inverse: true,
+                            axisTick: { show: false },
+                            axisLine: { show: false },
+                            axisLabel: {
+                                color: '#606266',
+                                fontSize: 14,
+                                fontWeight: 'bold'
+                            },
+                            animationDuration: 300,
+                            animationDurationUpdate: 300,
+                        },
+                        series: [{
+                            realtimeSort: true,
+                            name: '检测数量',
+                            type: 'bar',
+                            data: [],
+                            label: {
+                                show: true,
+                                position: 'right',
+                                valueAnimation: true,
+                                color: '#409EFF',
+                                fontWeight: 'bold',
+                                formatter: '{c}'
+                            },
+                            itemStyle: {
+                                borderRadius: [0, 20, 20, 0], // 圆角柱状图
+                                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                    { offset: 0, color: '#83bff6' },
+                                    { offset: 0.5, color: '#409EFF' },
+                                    { offset: 1, color: '#188df0' }
+                                ])
+                            },
+                            barWidth: 20, // 柱子宽度
+                            barGap: '10%',
+                            barCategoryGap: '20%',
+                            animationDuration: 0,
+                            animationDurationUpdate: 3000,
+                            animationEasing: 'linear',
+                            animationEasingUpdate: 'linear'
+                        }],
+                        grid: {
+                            left: '20px',
+                            right: '50px',
+                            top: '20px',
+                            bottom: '20px',
+                            containLabel: true
+                        }
+                    };
+
+                    myChart.setOption(option);
+
+                    // 启动轮询
+                    updateChart();
+                    intervalId = setInterval(updateChart, 3000);
+                }
+            },
+            mounted() {
+                this.LoadBar();
+            }
+        });
+    </script>
+</body>
+
+</html>

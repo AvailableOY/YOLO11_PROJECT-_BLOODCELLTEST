@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>摄像头控制</title>
+    <!-- Element UI 的 CSS 文件 -->
+    <link rel="stylesheet" href="../static/element-ui/lib/theme-chalk/index.css">
+    <!-- Vue.js 文件 -->
+    <script src="../static/js/vue.js"></script>
+    <!-- Element UI 的 JS 文件 -->
+    <script src="../static/element-ui/lib/index.js"></script>
+    <!-- Axios 文件 -->
+    <script src="../static/axios/dist/axios.js"></script>
+    <!-- 引入 echarts -->
+    <script src="../static/js/echarts-5.3.3.js"></script>
+
+    <style>
+        #app {
+            display: flex;
+            gap: 24px;
+            /* 两栏之间的间距 */
+            max-width: 1000px;
+            width: 100%;
+            padding: 20px;
+            justify-content: center;
+            /* 整体居中 */
+        }
+
+        body {
+            background-color: #f0f2f5;
+            font-family: "Helvetica Neue", sans-serif;
+            /* display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; */
+            margin: 0;
+        }
+
+        .card-container,
+        .chart-container {
+            flex: 1;
+            min-width: 320px;
+            max-width: 600px;
+            padding: 30px 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            background: #fff;
+            min-height: 400px;
+        }
+
+        .el-button {
+            margin: 10px;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .el-button:hover {
+            opacity: 0.9;
+        }
+
+        img {
+            margin-top: 20px;
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #ebeef5;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        img:hover {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="card-container">
+            <el-button v-show="!isOpen" type="primary" @click="cameraDetect">打开摄像头</el-button>
+            <el-button v-show="isOpen" type="danger" @click="cameraDetect">关闭摄像头</el-button>
+            <img v-show="isOpen" :src="cameraDetectUrl" alt="video Detect" />
+        </div>
+        <div class="chart-container">
+            <h3 style="text-align: center; margin-bottom: 12px; color: #555;">检测统计</h3>
+            <div id="bar" style="width: 100%; height: 350px;"></div>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: "#app",
+            data() {
+                return {
+                    serverUrl: "http://127.0.0.1:8777/",
+                    isOpen: false,
+                    cameraDetectUrl: null,
+                }
+            },
+            methods: {
+                cameraDetect() {
+                    //  判断是打开还是关闭摄像头
+                    this.isOpen = !this.isOpen;  //取反
+                    // 服务器返回的内容是一个字节流 具体内容是一个jpg图片 直接把这个图片给img的src 显示出来
+                    if (this.isOpen) {
+                        // 打开
+                        this.cameraDetectUrl = this.serverUrl + "cameraDetect/?isOpen=true";
+                    } else {
+                        // 关闭
+                        this.cameraDetectUrl = this.serverUrl + "cameraDetect/?isOpen=true";
+                    }
+                },
+                LoadBar() {
+
+                }
+            },
+            mounted() {
+                // 初始化柱状图
+                this.LoadBar();
+            }
+        })
+    </script>
+</body>
+
+</html>

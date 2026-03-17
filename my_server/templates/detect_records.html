@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>检测记录</title>
+    <!-- 引入 Element-UI 样式 -->
+    <link rel="stylesheet" href="../static/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入 Vue -->
+    <script src="../static/js/vue.js"></script>
+    <!-- 引入 Element-UI -->
+    <script src="../static/element-ui/lib/index.js"></script>
+    <!-- 引入 Axios -->
+    <script src="../static/axios/dist/axios.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <!-- 为 vue.js 的对象创建一个容器，只有在这个容器中的代码内容，才可以使用 vue.js 对象中的内容，不在容器中无效-->
+    <div id="app">
+        <el-table :data="tableData" stripe style="width: 100%">
+            <el-table-column prop="username" label="检测人员" width="100"></el-table-column>
+            <el-table-column prop="createTime" label="检测时间" align="center"></el-table-column>
+
+            <el-table-column label="操作" width="120" align="center" fixed="right">
+                <template slot-scope="scope">
+                    <el-button type="primary" size="small" @click="showDetails(scope.row)">查看详情</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <!-- 分页
+            @size-change 每页显示条数改变时触发  默认传递newSize过去
+            @current-change 当前页码改变时触发  默认传递newPage过去
+            :current-page="currentPage4" 当前页码
+            :page-sizes="[100, 200, 300, 400]" 每页显示条数选项
+            :page-size="100" 每页显示条数 
+            :layout="total, sizes, prev, pager, next, jumper" 显示哪些组件
+            :total="400" 总条数
+        -->
+        <center>
+            <div class="block">
+                <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
+                    :current-page="page" :page-sizes="[2, 5, 10, 20]" :page-size="100"
+                    layout="total, sizes, prev, pager, next, jumper" :total="400">
+                </el-pagination>
+            </div>
+        </center>
+        <el-dialog title="检测记录详情" :visible.sync="dialogVisible" width="60%">
+            <div v-if="currentRecord">
+                <el-descriptions title="基础信息" :column="2" border>
+                    <el-descriptions-item label="报告单号">[[ currentRecord.recordId ]]</el-descriptions-item>
+                    <el-descriptions-item label="检测时间">[[ currentRecord.createTime ]]</el-descriptions-item>
+                    <el-descriptions-item label="检验医师">[[ currentRecord.username ]]</el-descriptions-item>
+                    <el-descriptions-item label="平均置信度">[[ currentRecord.conf ]]</el-descriptions-item>
+                    <el-descriptions-item label="类别信息" :span="2">[[ currentRecord.result ]]</el-descriptions-item>
+                </el-descriptions>
+
+                <h3 style="margin-top: 20px;">影像对比</h3>
+                <div style="display: flex; gap: 20px; justify-content: center;">
+                    <div style="text-align: center;">
+                        <p>原始影像</p>
+                        <img :src="serverURL + currentRecord.orginUrl"
+                            style="max-width: 100%; height: 200px; border-radius: 4px;">
+                    </div>
+                    <div style="text-align: center;">
+                        <p>AI 检测结果</p>
+                        <img :src="serverURL + currentRecord.resultUrl"
+                            style="max-width: 100%; height: 200px; border-radius: 4px;">
+                    </div>
+                </div>
+            </div>
+
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible = false">关 闭</el-button>
+                <el-button type="success" icon="el-icon-document" @click="generateReport" :loading="isGenerating">
+                    生成并下载 Word 报告
+                </el-button>
+            </span>
+        </el-dialog>
+    </div>
+    <!-- 通过 JavaScript 代码创建 vue.js 对象-->
+    <script>
+        // 创建 vue 对象
+        new Vue({
+            delimiters: ["[[", "]]"],
+            // el 属性，绑定作用域
+            el: '#app',
+            // data 属性，定义变量
+            data() {
+                return {
+                    serverURL: "http://127.0.0.1:8777/",
+                    page: 1,  // 当前页码 默认第一页
+                    size: 2,  // 每页显示条数 默认每页显示2条
+                    tableData: [
+
+                    ],
+                    total: 0, // 总条数
+                    dialogVisible: false, // 控制弹窗是否显示
+                    currentRecord: null,  // 存放当前点击的那一行的数据
+                    isGenerating: false,  // 控制下载按钮的 loading 状态（防重复点击）
+                }
+            },
+            // methods 属性，定义函数
+            methods: {
+                // 加载表格数据
+                loadTableData() {
+                    axios({
+                        url: this.serverURL + "findData",
+                        method: "get",
+                        params: { //使用get请求params传给服务器 键值对格式
+                            page: this.page,
+                            size: this.size
+                        },
+                    }).then(res => {
+                        console.log(res.data);
+                        // console.log(res.data.data.DataList);
+                        this.tableData = res.data.data.dataList;
+                        this.total = res.data.data.total;
+                    }).catch(error => {
+                        console.log(error);
+                    });
+                },
+                handleSizeChange(val) {
+                    // 修改默认的size参数
+                    this.size = val;
+                    // 重新加载表格数据
+                    this.loadTableData();
+                },
+                handleCurrentChange(val) {
+                    // 修改默认的page参数
+                    this.page = val;
+                    // 重新加载表格数据
+                    this.loadTableData();
+                },
+                showDetails(row) {
+                    this.currentRecord = row; // 把当前行的数据存起来
+                    this.dialogVisible = true; // 弹出窗口
+                },
+                generateReport() {
+                    this.isGenerating = true; // 按钮变成转圈加载状态
+
+                    axios({
+                        url: this.serverURL + "generate_report/", // 后端生成报告的接口地址
+                        method: "post",
+                        data: {
+                            record_id: this.currentRecord.recordId
+                        },
+                        responseType: 'blob' // ⚠️ 极其重要！告诉浏览器这是一个二进制文件
+                    }).then(res => {
+                        // 利用 Blob 对象在前端强制触发文件下载
+                        const url = window.URL.createObjectURL(new Blob([res.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        // 动态设置下载的文件名
+                        link.setAttribute('download', `血细胞检测报告_${this.currentRecord.recordId}.docx`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                        this.$message.success('报告生成并下载成功！'); // Element-UI 的成功提示
+                    }).catch(error => {
+                        console.error(error);
+                        this.$message.error('报告生成失败，请检查后端日志。');
+                    }).finally(() => {
+                        this.isGenerating = false; // 无论成功失败，恢复按钮状态
+                    });
+                }
+            },
+            // mounted 属性，定义页面加载完成后执行的函数
+            mounted() {
+                // 打开页面就换展示内容
+                this.loadTableData();
+            }
+        });
+    </script>
+</body>
+
+</html>

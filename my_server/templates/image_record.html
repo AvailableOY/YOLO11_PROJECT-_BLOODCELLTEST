@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>图片检测记录</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            color: #1976d2;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .record-item {
+            display: flex;
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .record-item:last-child {
+            border-bottom: none;
+        }
+        .thumbnail {
+            width: 120px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 12px;
+        }
+        .info {
+            margin-left: 20px;
+            flex: 1;
+        }
+        .info h3 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .info p {
+            margin: 4px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .status.fire {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        .status.safe {
+            color: #388e3c;
+            font-weight: bold;
+        }
+        .no-records {
+            text-align: center;
+            color: #888;
+            padding: 40px 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 图片检测记录</h1>
+
+        <!-- 示例记录（实际应由后端动态渲染） -->
+        <div class="record-item">
+            <div class="thumbnail">📷 图片缩略图</div>
+            <div class="info">
+                <h3>检测 #20251012001</h3>
+                <p><strong>上传时间：</strong>2025-10-12 14:30:22</p>
+                <p><strong>检测结果：</strong><span class="status fire">发现火焰（置信度 92%）</span></p>
+                <p><strong>文件名：</strong>fire_scene_001.jpg</p>
+            </div>
+        </div>
+
+        <div class="record-item">
+            <div class="thumbnail">📷 图片缩略图</div>
+            <div class="info">
+                <h3>检测 #20251012002</h3>
+                <p><strong>上传时间：</strong>2025-10-12 15:10:45</p>
+                <p><strong>检测结果：</strong><span class="status safe">未发现异常</span></p>
+                <p><strong>文件名：</strong>office_view.png</p>
+            </div>
+        </div>
+
+        <!-- 如果没有记录 -->
+        <!--
+        <div class="no-records">
+            暂无检测记录，请先上传图片进行火灾检测。
+        </div>
+        -->
+
+        <hr style="margin-top: 30px;">
+        <p style="text-align: center; color: #888; font-size: 14px;">
+            © 2025 后台管理系统 | 所有检测记录将保留30天
+        </p>
+    </div>
+</body>
+</html>

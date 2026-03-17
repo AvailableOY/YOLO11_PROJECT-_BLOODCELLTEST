@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>后台管理系统</title>
+    <!-- 网站图标 -->
+    <link rel="shortcut icon" href="../static/favicon/favicon.png" type="image/png">
+
+    <!-- 引入 Vue -->
+    <script src="../static/js/vue.js"></script>
+    <script src="../static/axios/dist/axios.js"></script>
+
+    <!-- 引入 Element UI -->
+    <link rel="stylesheet" href="../static/element-ui/lib/theme-chalk/index.css">
+    <script src="../static/element-ui/lib/index.js"></script>
+
+    <!-- 自定义样式 -->
+    <style>
+        .container {
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .header {
+            background-color: #1f2d3d;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            color: #ccc;
+        }
+
+        .sidebar {
+            background-color: #2f3b4c;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .menu {
+            border-right: none;
+            background-color: inherit;
+        }
+
+        .main {
+            background-color: #f5f7fa;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .logout-button {
+            background-color: #1f2d3d;
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            outline: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .logout-button:hover {
+            transform: translateY(-2px);
+            background-color: #222;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        iframe {
+            width: 100%;
+            height: 98%;
+            border: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <el-container class="container">
+            <!-- 头部导航 -->
+            <el-header class="header">
+                <div class="logo">血细胞智能检测系统</div>
+                <div class="user-info">
+                    <span>欢迎 [{ username }]</span>
+                    &nbsp;&nbsp;
+                    <el-button @click="logout" class="logout-button" size="small">
+                        <i class="el-icon-switch-button" style="color: red;"></i>
+                        <span>退出</span>
+                    </el-button>
+                </div>
+            </el-header>
+
+            <el-container>
+                <!-- 左侧菜单 -->
+                <el-aside class="sidebar" width="200px">
+                    <el-menu class="menu" background-color="#2f3b4c" text-color="#fff" active-text-color="#ffd04b">
+                        <el-menu-item index="index" @click="changeIframeSrc('/goWelcome/')">
+                            <i class="el-icon-menu"></i>
+                            <span>系统首页</span>
+                        </el-menu-item>
+                        <el-menu-item @click="goChat">
+                            <i class="el-icon-chat-dot-round"></i>
+                            <span>AI 智能问诊</span>
+                        </el-menu-item>
+                        <el-submenu index="music">
+                            <template slot="title">
+                                <i class="el-icon-user"></i>
+                                <span>检测中心</span>
+                            </template>
+                            <el-menu-item @click="changeIframeSrc('goDetectImg')">图片检测</el-menu-item>
+                            <el-menu-item @click="changeIframeSrc('goDetectRecords')">图片检测记录</el-menu-item>
+                            <el-menu-item @click="changeIframeSrc('goVideoDetect')">视频监测</el-menu-item>
+                            <el-menu-item @click="changeIframeSrc('goCameraDetect')">实时监测</el-menu-item>
+                            <el-menu-item @click="changeIframeSrc('goEcharts')">数据可视化</el-menu-item>
+
+                        </el-submenu>
+                    </el-menu>
+                </el-aside>
+
+                <!-- 主体内容 -->
+                <el-main class="main">
+                    <iframe :src="iframeUrl" scrolling="yes"></iframe>
+                </el-main>
+            </el-container>
+        </el-container>
+    </div>
+
+    <script>
+        new Vue({
+            el: "#app",
+            delimiters: ["[{", "}]"],
+            data() {
+                return {
+                    username: '',
+                    iframeUrl: '',
+                    serverUrl: 'http://127.0.0.1:8777/',
+                };
+            },
+            methods: {
+                changeIframeSrc(url) {
+                    this.iframeUrl = this.serverUrl + url;
+                },
+                logout() {
+                    // 1. 清除前端存储的用户信息
+                    sessionStorage.removeItem("username");
+                    // 跳转界面
+                    window.location.href = this.serverUrl;
+                },
+                goChat() {
+                    window.location.href = this.serverUrl+'goChat/';
+                }
+            },
+            mounted() {
+                // 加载当亲页面就获取这个值
+                this.username = sessionStorage.getItem("username");
+                this.changeIframeSrc('/goWelcome/');
+            }
+        });
+    </script>
+</body>
+
+</html>
