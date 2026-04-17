@@ -15,3 +15,11 @@ venv/
 
 # 忽略yolo11_vit
 yolo11_vit
+
+# 忽略 runs 目录
+**/runs/
+# 忽略static/uplaod
+**/static/upload/
+
+# 忽略模型文件 
+my_server/weights/

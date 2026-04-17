@@ -1,0 +1,12 @@
+# Web 框架
+Django==5.0.3
+
+# YOLOv11 核心库
+ultralytics==8.3.0
+
+# 环境变量读取
+python-dotenv==1.0.1
+
+# 图像处理与计算机视觉支持
+opencv-python==4.9.0.80
+Pillow==10.2.0
