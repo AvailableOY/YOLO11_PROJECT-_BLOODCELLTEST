@@ -5,193 +5,99 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 智能问诊助手</title>
-    <link rel="shortcut icon" href="../static/favicon/favicon_chat.png" type="image/png">
-    
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.8.0/styles/github.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script> <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.8.0/build/highlight.min.js"></script>
 
     <style>
-        /* 全局重置与基础样式 */
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f0f2f5;
-            height: 100vh;
-            display: flex;
-            justify-content: center; /* 居中显示 */
-        }
-
-        /* 优化滚动条样式 */
+        /* ... 你的 CSS 样式完全保持不变 ... */
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background-color: #f0f2f5; height: 100vh; display: flex; justify-content: center; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-
-        /* 主容器使用 Flex 布局 */
-        #app {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            max-width: 1000px;
-            height: 100vh;
-            background-color: #fff;
-            box-shadow: 0 0 20px rgba(0,0,0,0.05);
-        }
-
-        /* 聊天记录区域自适应撑开 */
-        .chat-messages {
-            flex: 1;
-            padding: 24px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            scroll-behavior: smooth;
-        }
-
-        .message-wrapper {
-            display: flex;
-            flex-direction: column;
-            max-width: 75%;
-        }
-
+        #app { display: flex; flex-direction: column; width: 100%; max-width: 1000px; height: 100vh; background-color: #fff; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        .chat-messages { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+        .message-wrapper { display: flex; flex-direction: column; max-width: 75%; }
         .user-wrapper { align-self: flex-end; }
         .ai-wrapper { align-self: flex-start; }
-
-        .message {
-            padding: 12px 18px;
-            border-radius: 12px;
-            line-height: 1.6;
-            word-break: break-word;
-            font-size: 15px;
-        }
-
-        .user-message {
-            background-color: #1890ff;
-            color: white;
-            border-bottom-right-radius: 2px;
-            box-shadow: 0 2px 6px rgba(24,144,255,0.2);
-        }
-
-        .ai-message {
-            background-color: #f6f8fa;
-            color: #333;
-            border: 1px solid #e1e4e8;
-            border-bottom-left-radius: 2px;
-        }
-
-        /* 加载动画样式 */
-        .typing-indicator {
-            color: #888;
-            font-size: 14px;
-            font-style: italic;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .message { padding: 12px 18px; border-radius: 12px; line-height: 1.6; word-break: break-word; font-size: 15px; }
+        .user-message { background-color: #1890ff; color: white; border-bottom-right-radius: 2px; box-shadow: 0 2px 6px rgba(24, 144, 255, 0.2); }
+        .ai-message { background-color: #f6f8fa; color: #333; border: 1px solid #e1e4e8; border-bottom-left-radius: 2px; }
+        .typing-indicator { color: #888; font-size: 14px; font-style: italic; display: flex; align-items: center; gap: 6px; }
         .dot { width: 6px; height: 6px; background: #888; border-radius: 50%; animation: blink 1.4s infinite both; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
-
-        /* 底部输入框区域 */
-        .chat-input-container {
-            padding: 16px 24px;
-            background-color: #fff;
-            border-top: 1px solid #ebedf0;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .chat-input-container input {
-            flex: 1;
-            padding: 12px 20px;
-            border: 1px solid #d9d9d9;
-            border-radius: 24px;
-            outline: none;
-            font-size: 15px;
-            transition: border-color 0.3s;
-        }
-
-        .chat-input-container input:focus {
-            border-color: #1890ff;
-            box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
-        }
-
-        .chat-input-container input:disabled {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
-        }
-
-        .chat-input-container button {
-            padding: 12px 28px;
-            background-color: #1890ff;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-
-        .chat-input-container button:hover:not(:disabled) {
-            background-color: #40a9ff;
-        }
-
-        .chat-input-container button:disabled {
-            background-color: #bae0ff;
-            cursor: not-allowed;
-        }
-
-        /* 保持原有的 Markdown 样式... */
+        .chat-input-container { padding: 16px 24px; background-color: #fff; border-top: 1px solid #ebedf0; display: flex; gap: 12px; align-items: center; }
+        .chat-input-container input { flex: 1; padding: 12px 20px; border: 1px solid #d9d9d9; border-radius: 24px; outline: none; font-size: 15px; transition: border-color 0.3s; }
+        .chat-input-container input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2); }
+        .chat-input-container input:disabled { background-color: #f5f5f5; cursor: not-allowed; }
+        .chat-input-container button { padding: 12px 28px; background-color: #1890ff; color: white; border: none; border-radius: 24px; cursor: pointer; font-size: 15px; font-weight: 500; transition: all 0.3s; }
+        .chat-input-container button:hover:not(:disabled) { background-color: #40a9ff; }
+        .chat-input-container button:disabled { background-color: #bae0ff; cursor: not-allowed; }
         .markdown-body { font-size: 15px; }
-        .markdown-body pre { background: #282c34; color: #abb2bf; padding: 16px; border-radius: 8px; overflow-x: auto;}
+        .markdown-body pre { background: #282c34; color: #abb2bf; padding: 16px; border-radius: 8px; overflow-x: auto; }
         .markdown-body code { font-family: 'Consolas', monospace; }
         .markdown-body p:last-child { margin-bottom: 0; }
         .markdown-body p:first-child { margin-top: 0; }
         .markdown-body table { border-collapse: collapse; width: 100%; margin: 10px 0; }
         .markdown-body th, .markdown-body td { border: 1px solid #d0d7de; padding: 8px; }
-        .markdown-body img {
-            max-width: 100%; /* 图片宽度绝不超过聊天气泡的宽度 */
-            height: auto;
-            border-radius: 8px; /* 给图片加上好看的圆角 */
-            margin: 10px 0; /* 图片上下留出一点间距 */
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* 加一点淡淡的阴影显得更高级 */
-        }
+        .markdown-body img { max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
     </style>
 </head>
 
 <body>
     <div id="app">
+        <div style="padding: 10px 24px; background: #fff; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center;">
+            <el-button type="primary" plain size="small" icon="el-icon-plus" @click="createNewSession">开启新诊断</el-button>
+            <span style="font-weight: bold; color: #606266;">显微血细胞检测大模型</span>
+            <el-button size="small" icon="el-icon-time" @click="openHistoryDrawer">历史记录</el-button>
+        </div>
+
+        <el-drawer title="历史会话列表" :visible.sync="historyDrawerVisible" direction="ltr" size="300px">
+            <div style="padding: 0 10px;">
+                <el-menu @select="loadSessionHistory" style="border-right: none;">
+                    <el-menu-item v-for="item in sessionList" :key="item.session_id" :index="item.session_id"
+                        style="height: auto; line-height: 1.5; padding: 10px; border-bottom: 1px solid #f0f0f0;">
+                        <div style="font-weight: bold; color: #303133;">
+                            <i class="el-icon-chat-dot-round"></i> [[ item.title ]]
+                        </div>
+                        <div style="font-size: 12px; color: #909399; margin-top: 5px;">
+                            [[ item.time ]]
+                        </div>
+                    </el-menu-item>
+                </el-menu>
+                <div v-if="sessionList.length === 0" style="text-align: center; color: #999; margin-top: 50px;">
+                    暂无历史记录
+                </div>
+            </div>
+        </el-drawer>
+
         <div class="chat-messages" ref="messages">
-            <div v-for="msg in messages" :key="msg.id" 
-                 :class="['message-wrapper', msg.sender === 'user' ? 'user-wrapper' : 'ai-wrapper']">
-                
+            <div v-for="msg in messages" :key="msg.id"
+                :class="['message-wrapper', msg.sender === 'user' ? 'user-wrapper' : 'ai-wrapper']">
+
                 <div :class="['message', msg.sender === 'user' ? 'user-message' : 'ai-message']">
                     <div v-if="msg.sender === 'ai' && msg.isThinking" class="typing-indicator">
                         AI 正在分析中
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
                     </div>
                     <div v-else-if="msg.sender === 'ai'" class="markdown-body" v-html="renderMarkdown(msg.text)"></div>
                     <div v-else>[[ msg.text ]]</div>
                 </div>
-
             </div>
         </div>
 
         <div class="chat-input-container">
-            <input type="text" 
-                   v-model="inputText" 
-                   @keyup.enter="sendMessage" 
-                   :disabled="isSending"
-                   placeholder="输入与血细胞检测或病理相关的诊断问题..." 
-                   ref="inputBox" />
+            <input type="text" v-model="inputText" @keyup.enter="sendMessage" :disabled="isSending"
+                placeholder="输入与血细胞检测或病理相关的诊断问题..." ref="inputBox" />
             <button @click="sendMessage" :disabled="isSending || !inputText.trim()">
                 [[ isSending ? '发送中...' : '发 送' ]]
             </button>
@@ -211,9 +117,80 @@
                     messages: [
                         { id: 1, sender: 'ai', text: '您好！我是血细胞智能辅助分析助手。请问关于检测报告您有什么疑问？', isThinking: false }
                     ],
+                    currentSessionId: "", // 当前正在聊天的 ID
+                    historyDrawerVisible: false, // 控制抽屉开关
+                    sessionList: [], // 存放左侧列表数据
                 };
             },
             methods: {
+                // 生成一个SessionId
+                generateSessionId() {
+                    return 'sess_' + new Date().getTime() + '_' + Math.floor(Math.random() * 1000);
+                },
+                // 新增加一个会话
+                createNewSession() {
+                    this.currentSessionId = this.generateSessionId();
+                    
+                    // 💡 修复：直接给 this.messages 赋一个全新的数组，瞬间清空旧屏幕！
+                    // 并且字段必须使用 id、sender、text，这样 Vue 才能正确渲染气泡
+                    this.messages = [{
+                        id: Date.now(), 
+                        sender: 'ai', 
+                        text: "您好！我是血细胞辅助诊断助手，请问有什么可以帮您？",
+                        isThinking: false
+                    }];
+                    
+                    // 可选：让滚动条复位到最上面（或最下面）
+                    this.scrollToBottom();
+                },
+                // 打开抽屉的时候拉取后端列表
+                openHistoryDrawer() {
+                    this.historyDrawerVisible = true;
+                    axios.get(this.serverURL + 'get_session_list/').then(res => {
+                        if (res.data.status === 200) {
+                            this.sessionList = res.data.data;
+                        }
+                    });
+                },
+                // 点击侧栏的某一项，加载该聊天的详细记录
+                loadSessionHistory(sessionId) {
+                    this.currentSessionId = sessionId;
+                    this.historyDrawerVisible = false;
+                    
+                    // 💡 加上加载动画，这样你点下去就知道是不是触发了
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '正在还原历史对话...',
+                        spinner: 'el-icon-loading',
+                        background: 'rgba(255, 255, 255, 0.8)'
+                    });
+
+                    axios.get(this.serverURL + 'get_chat_history/?session_id=' + sessionId)
+                    .then(res => {
+                        loading.close(); // 关闭动画
+                        if (res.data.status === 200) {
+                            // 将后端的 role/content 字段映射为前端的 sender/text 字段
+                            this.messages = res.data.data.map((item, index) => ({
+                                id: Date.now() + index,
+                                // 兼容处理：不管后端存的是 'ai' 还是 'assistant'，前端都认作 'ai'
+                                sender: item.role === 'user' ? 'user' : 'ai',
+                                text: item.content,
+                                isThinking: false
+                            }));
+                            this.scrollToBottom();
+                            this.$message.success("历史记录还原成功！");
+                        } else {
+                            // 💡 如果后端查不到数据或报错，弹红框提醒
+                            this.$message.error("加载失败：" + res.data.error);
+                        }
+                    })
+                    .catch(err => {
+                        loading.close(); // 关闭动画
+                        console.error("加载历史记录请求彻底失败:", err);
+                        // 💡 如果接口 404 连不上，弹红框提醒
+                        this.$message.error("接口请求异常！请按 F12 看控制台，或检查 Django 是否报错！");
+                    });
+                },
                 renderMarkdown(text) {
                     if (!text) return '';
                     try {
@@ -230,10 +207,10 @@
                         return text;
                     }
                 },
-                
+
                 async sendMessage() {
                     if (!this.inputText.trim() || this.isSending) return;
-                    
+
                     const userInput = this.inputText;
                     this.inputText = '';
                     this.isSending = true;
@@ -256,14 +233,18 @@
                     };
                     this.messages.push(aiMsg);
                     this.scrollToBottom();
-
+                    const requestData = {
+                        question: this.userInput,
+                        session_id: this.currentSessionId // 必须把当前 ID 传给后端！
+                    };
                     try {
                         const response = await fetch(this.serverURL + "aichat/chatModel/", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                                 sender: this.userName,
-                                question: userInput
+                                question: userInput,
+                                session_id: this.currentSessionId
                             })
                         });
 
@@ -282,7 +263,7 @@
 
                             buffer += decoder.decode(value, { stream: true });
                             const lines = buffer.split("\n\n");
-                            buffer = lines.pop(); 
+                            buffer = lines.pop();
 
                             for (const line of lines) {
                                 if (line.startsWith("data: ")) {
@@ -321,7 +302,7 @@
                 scrollToBottom() {
                     this.$nextTick(() => {
                         const el = this.$refs.messages;
-                        if(el) {
+                        if (el) {
                             el.scrollTop = el.scrollHeight;
                         }
                     });
@@ -329,8 +310,10 @@
             },
             mounted() {
                 this.scrollToBottom();
+                this.createNewSession();
             }
         });
     </script>
 </body>
+
 </html>

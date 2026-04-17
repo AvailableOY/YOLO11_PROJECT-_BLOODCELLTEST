@@ -35,90 +35,112 @@ def translate_result(result):
     }
     return {result_map.get(k, k): v for k, v in result.items()}
 #图片检测
-def detect_img(file, username):
-    # 定义一个字典 里面的key就是类型信息 value是类别数量
-    class_names = {}
-    filename = str(int(time.time())) + ".jpg"
-    # 存储的路径
-    save_path = os.path.join(BASE_DIR, 'static',"upload", filename)
-    # print(save_path) 
-    # 保存
-    with open(save_path, 'wb') as f:
-        # 一行一行写入
-        for chunk in file.chunks(): 
-            f.write(chunk)
-    '''
-        图片检测
-    '''
-    # 统计全部的置信度
-    conf_sum = 0
-    length = 0
-    result_url = ''
-    model = YOLO(os.path.join(BASE_DIR, "weights","best.pt"))
-    project = os.path.join(BASE_DIR, 'runs',"detect")
-    results = model.predict(source=save_path,save = True,project=project)
-    if len(results) == 0:
-        return{
-            "status": 200,
-            "msg": "未检测到任何目标"
-        }
-    # 检测结果处理
-    for result in results:
-        names = result.names
-        boxes = result.boxes
-        length = len(boxes)
-        result_url = result.save_dir
-        for box in boxes:
-            # 类别
-            class_name = names[int(box.cls.item())]
-            # print("class_name:", class_name)
-            # 对于应的类别数量+1
-            class_names[class_name] = class_names.get(class_name, 0) + 1
-            # 置信度
-            conf = round(box.conf.item(), 2)
-            conf_sum += conf
-            '''
-                每一次数据存入数据库的内容为：
-                原始图片访问路径 检测结果图片访问地址 检测的置信度平均值 类别数量统计 检测的人 检测时间
-            '''
-        # 封装数据
-        origin_rul = os.path.join("static","upload", filename).replace("\\","/")
-        result_url = os.path.join("static",result_url.split("runs")[1]).replace("\\","/")
-        result_url = "static" + result_url + "/" + filename
+def detect_img(files, username):
+    # 1. 确保核心文件夹存在（防止 FileNotFoundError）
+    # 既然你要用 runs/detect，我们把它放在 static 下，这样前端才能直接访问
+    upload_dir = os.path.join(BASE_DIR, "static", "upload")
+    # 💡 关键：这就是你要的路径，放在 static 下是为了让网页能看到图
+    project_path = os.path.join(BASE_DIR, "static", "runs", "detect")
+    
+    os.makedirs(upload_dir, exist_ok=True)
+    os.makedirs(project_path, exist_ok=True)
 
-        conf = round(conf_sum/length,2)
-        # 映射为中文
-        class_names = translate_result(class_names)
-        result = class_names
-        save_data = [origin_rul,result_url,conf,str(result),username]
-        print(save_data)
-        '''
-            存入数据库
-            这里是数据库的存储操作，我们需要手动的管理事物
-            1、如果操作的数据库代码没有问题 就提交
-            2、如果操作的代码有问题 就回滚
-        '''
-        try:
-            dd.save_result(save_data)
-            return{
-            "status": 200,
-            "msg": "检测成功",
-            "data": {
-                "result_url": result_url,
-                "result": result,
-            }
-        }
-        except Exception as e:
-            print(e)
-            '''
-            返回检测结果
-            '''
-            return{
-                "status": 200,
-                "msg": "检测失败",
-                "data": e
+    # 模型加载
+    model_path = os.path.join(BASE_DIR, "weights", "best.pt")
+    model = YOLO(model_path)
+    
+    detailed_results = []
+
+    # 2. 循环处理每一张图片
+    for index, file in enumerate(files):
+        class_names = {}
+        filename = f"{int(time.time())}_{index}.jpg"
+        
+        # --- A. 保存原图到 static/upload ---
+        save_path = os.path.join(upload_dir, filename)
+        with open(save_path, "wb") as f:
+            for chunk in file.chunks():
+                f.write(chunk)
+        # 这里是推理时间的测试
+        start_time = time.time()
+
+        # --- B. 执行预测 ---
+        # 💡 project 参数设为你想要的路径
+        # name 设为 "predict"，YOLO 会自动生成 predict, predict2, predict3...
+        results = model.predict(
+            source=save_path, 
+            save=True, 
+            project=project_path, 
+            name="predict"
+        )
+        # 💡 2. 记录推理结束时间，并计算耗时（转换为毫秒 ms，保留两位小数）
+        end_time = time.time()
+        infer_time_ms = round((end_time - start_time) * 1000, 2)
+        
+        # 💡 3. 在后台打印出来，方便你直接抄进论文的数据表里
+        print(f"🚀 图片 {filename} 纯推理耗时: {infer_time_ms} ms")
+        
+        if len(results) == 0:
+            continue
+
+        # --- C. 处理检测结果 ---
+        for result in results:
+            # 💡 关键：获取 YOLO 刚刚自动创建的文件夹名字（如 predict85）
+            yolo_folder = os.path.basename(result.save_dir)
+            
+            names = result.names
+            boxes = result.boxes
+            length = len(boxes)
+            
+            if length == 0:
+                continue
+
+            conf_sum = 0
+            for box in boxes:
+                cls_id = int(box.cls.item())
+                class_name = names[cls_id]
+                class_names[class_name] = class_names.get(class_name, 0) + 1
+                conf_sum += box.conf.item()
+
+            # --- D. 封装路径与存库 ---
+            # 数据库里的原始图路径
+            origin_url = f"static/upload/{filename}"
+            
+            # 💡 核心修正：按照你要求的格式拼接结果图路径
+            # 存入数据库的应该是：static/runs/detect/predictXX/文件名.jpg
+            formatted_res_url = f"static/runs/detect/{yolo_folder}/{filename}"
+
+            conf_avg = round(conf_sum / length, 2)
+            translated_results = translate_result(class_names)
+
+            # --- 封装当前图片的完整数据 ---
+            current_item_data = {
+                "origin_url": "/" + origin_url,
+                "result_url": "/" + formatted_res_url,
+                "conf": conf_avg,
+                "details": translated_results, # 这里是 {'红细胞': 10, '血小板': 2}
+                "filename": file.name           # 保留原始文件名，前端好展示
             }
 
+            # 准备数据并存入数据库
+            save_data = [origin_url, formatted_res_url, conf_avg, str(translated_results), username]
+            
+            try:
+                dd.save_result(save_data)
+                detailed_results.append(current_item_data)
+            except Exception as e:
+                print(f"图片 {filename} 存入数据库失败: {e}")
+                continue
+
+    # --- E. 响应 ---
+    if len(detailed_results) > 0:
+        return {
+            "status": 200,
+            "msg": f"批量检测成功，处理了{len(detailed_results)}张图",
+            "data": { "all_data": detailed_results }
+        }
+    else:
+        return { "status": 500, "msg": "检测失败", "data": {} }
 
 
 #检测结果展示

@@ -4,6 +4,7 @@ from django.db import connection
 from langchain_core.tools import tool
 import requests
 from myutils.MySQLUtil import get_conn, close_conn
+from service import ReportService as rs
 @tool
 def get_weather(location: str) -> str:
     """
@@ -89,6 +90,44 @@ def query_blood_cell_records(query_type: str, record_id: int = None, limit: int 
         if cursor and conn:
             close_conn(cursor, conn)
     
-
+@tool
+def generate_medical_report_tool(record_id: str) -> str:
+    """
+    这是一个撰写专业医学病理报告的工具。
+    当用户要求“生成报告”、“写一份报告”、“分析最新记录”时，必须调用此工具。
+    参数:
+    - record_id (str): 检测记录的 ID。如果用户要求生成“最新的”报告，请直接传入 "latest"。严禁传入 '<record_id>' 等占位符。
+    """
+    try:
+        actual_id = None
+        
+        # 💡 修改 2：智能处理 LLM 传来的参数
+        # 如果大模型传了 'latest'，或者乱传了非数字的占位符（如 '<record_id>'）
+        if record_id.lower() == "latest" or not record_id.isdigit():
+            # 工具自己去数据库查最新的一条 ID
+            conn = get_conn()
+            cursor = conn.cursor()
+            cursor.execute("SELECT record_id FROM records ORDER BY record_id DESC LIMIT 1")
+            row = cursor.fetchone()
+            close_conn(cursor, conn)
+            
+            if row:
+                actual_id = row[0]
+                print(f"AI 自动拦截占位符，已查找到最新记录 ID 为: {actual_id}")
+            else:
+                return "数据库中目前没有任何检测记录，无法生成报告。"
+        else:
+            # 如果大模型乖乖传了数字字符（比如 "71"），就转成整数
+            actual_id = int(record_id)
+            
+        print(f"AI 正在为记录 {actual_id} 生成病理报告...")
+        
+        # 调用生成逻辑
+        report_md = rs.generate_ai_report(actual_id)
+        
+        return f"报告已生成完毕。请将以下 Markdown 格式的报告内容原样、完整地输出给用户，不要做任何删减：\n\n{report_md}"
+        
+    except Exception as e:
+        return f"报告生成过程中出现异常: {str(e)}"
 
 

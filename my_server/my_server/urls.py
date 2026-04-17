@@ -20,6 +20,7 @@ from controller import SystemController as sc
 from controller import UserController as uc
 from controller import DroneController as dc
 from service import DroneService as ds
+from service import ChatService as cs
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -56,4 +57,8 @@ urlpatterns = [
     path("get_dashboard_stats/",dc.get_dashboard_stats),
     # 生成报告
     path("generate_report/",dc.generate_report),
+    # 获取历史聊天记录
+    path("get_chat_history/", cs.get_chat_history),
+    # 获取会话列表
+    path("get_session_list/", cs.get_session_list),
 ]

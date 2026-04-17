@@ -7,11 +7,11 @@ from service import ChatService as cs
 from service import ReportService as rs
 
 def detect_img(request):
-    file = request.FILES.get("file")
+    files = request.FILES.getlist("files")
     username = request.POST.get("username")
-    print(file, username)
+    print(files, username)
     return JsonResponse(
-        ds.detect_img(file, username)
+        ds.detect_img(files, username)
         )
 
 # 检测结果展示
@@ -76,26 +76,13 @@ def generate_report(request):
             data = json.loads(request.body)
             record_id = data.get("record_id")
             
-            # 1. 调用 Service 生成报告，获取生成的绝对路径
-            file_path = rs.generate_report(record_id)
+            # 调用 Service，拿到的是一段 Markdown 字符串
+            report_md = rs.generate_ai_report(record_id)
             
-            if file_path and os.path.exists(file_path):
-                # 2. 以二进制读取模式打开文件
-                file_obj = open(file_path, 'rb')
-                
-                # 3. 使用 FileResponse 将文件流返回给前端下载
-                response = FileResponse(file_obj)
-                
-                # 设置 MIME 类型，告诉浏览器这是一个 Word 文档
-                response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                # 允许前端读取跨域的文件名 (如果在前端 axios 需要读 header 的话)
-                response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-                
-                return response
-            else:
-                return JsonResponse({"error": "后端生成报告失败，请检查日志。"}, status=500)
+            return JsonResponse({
+                "status": 200, 
+                "report_content": report_md
+            })
                 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-    else:
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
