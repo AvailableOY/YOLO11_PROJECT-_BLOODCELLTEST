@@ -11,7 +11,7 @@ def get_conn():
                             port=3306,
                             password="root", 
                             database="aiyolo",  #数据库名称
-                            charset="utf8"
+                            charset="utf8mb4"
                         )
 
 # 关闭数据库连接
