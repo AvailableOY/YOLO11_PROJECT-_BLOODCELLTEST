@@ -7,6 +7,7 @@ from myutils.MySQLUtil import get_conn, close_conn
 from service import ReportService as rs
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+
 @tool
 def get_weather(location: str) -> str:
     """

@@ -10,6 +10,17 @@ from dotenv import load_dotenv
 load_dotenv()
 from myutils.MySQLUtil import get_conn, close_conn
 import uuid
+
+
+
+TOOL_CN_NAMES = {
+    "search_medical_guidelines": "本地医疗知识库 (RAG)",
+    "query_blood_cell_records": "血细胞记录查库",
+    "generate_medical_report_tool": "医学报告生成",
+    "get_weather": "实时天气查询"
+}
+
+
 # 💡 新增 1：保存单条聊天记录到数据库
 def save_chat_message(session_id, role, content):
     if not content: # 如果内容为空就不保存
@@ -160,8 +171,8 @@ def chat(request):
                     args_str = ", ".join([str(v) for v in args_dict.values()]) if args_dict else "无参数"
                     
                     # 实时推送到前端告诉用户：“我正在用工具查东西！”
-                    print(f"正在使用工具：{tool_name}，参数：{args_str}")
-                    yield f"data: {json.dumps({'tool_name': tool_name, 'tool_args': args_str})}\n\n"
+                    readable_name = TOOL_CN_NAMES.get(tool_name, tool_name)
+                    yield f"data: {json.dumps({'tool_name': tool_name, 'readable_name':readable_name,'tool_args': args_str})}\n\n"
                     
                     if tool_name in available_tools:
                         selected_tool = available_tools[tool_name]

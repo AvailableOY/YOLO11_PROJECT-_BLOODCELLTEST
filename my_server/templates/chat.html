@@ -493,13 +493,8 @@
                                     try {
                                         const data = JSON.parse(dataStr);
                                         if (data.tool_name) {
-                                            let readableName = data.tool_name;
-                                            if (readableName === "search_medical_guidelines") readableName = "医疗知识库检索";
-                                            else if (readableName === "query_blood_cell_records") readableName = "血细胞记录查询";
-                                            else if (readableName === "generate_medical_report_tool") readableName = "医疗报告生成";
-                                            else if (readableName === "get_weather") readableName = "天气查询";
                                             aiMsg.toolCalls.push({
-                                                name: readableName,
+                                                name: data.readable_name || data.tool_name,
                                                 query: data.tool_args
                                             });
                                             this.scrollToBottom();
