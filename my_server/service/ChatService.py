@@ -4,7 +4,7 @@ from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from django.views.decorators.csrf import csrf_exempt
-from myutils.MCPTool import get_weather,query_blood_cell_records, generate_medical_report_tool
+from myutils.MCPTool import get_weather,query_blood_cell_records, generate_medical_report_tool,search_medical_guidelines
 from langchain_core.messages import HumanMessage, ToolMessage, AIMessage,SystemMessage
 from dotenv import load_dotenv
 load_dotenv()
@@ -95,7 +95,7 @@ model = ChatOpenAI(
     api_key=API_KEY,
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
 )
-tools = [get_weather,query_blood_cell_records, generate_medical_report_tool]
+tools = [get_weather,query_blood_cell_records, generate_medical_report_tool,search_medical_guidelines]
 model_with_tools = model.bind_tools(tools=tools)
 @csrf_exempt
 def chat(request):
@@ -153,6 +153,15 @@ def chat(request):
                 
                 for tool_call in ai_msg_accumulator.tool_calls:
                     tool_name = tool_call["name"].lower()
+
+                    # 把工具名称和检索词提取出来
+                    # 解析参数，让它变成干净的字符串，比如把 {'query': '红细胞偏低'} 变成 '红细胞偏低'
+                    args_dict = tool_call.get("args", {})
+                    args_str = ", ".join([str(v) for v in args_dict.values()]) if args_dict else "无参数"
+                    
+                    # 实时推送到前端告诉用户：“我正在用工具查东西！”
+                    print(f"正在使用工具：{tool_name}，参数：{args_str}")
+                    yield f"data: {json.dumps({'tool_name': tool_name, 'tool_args': args_str})}\n\n"
                     
                     if tool_name in available_tools:
                         selected_tool = available_tools[tool_name]
@@ -166,6 +175,7 @@ def chat(request):
                         
                 # 3. 第二次调用：将工具结果传回给模型，并获取最终的流式分析结果
                 for chunk in model_with_tools.stream(messages):
+                    print(messages)
                     if chunk.content:
                         final_ai_text += chunk.content # 收集工具分析后的文字碎片
                         yield f"data: {json.dumps({'content': chunk.content})}\n\n"

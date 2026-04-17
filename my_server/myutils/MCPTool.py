@@ -5,6 +5,8 @@ from langchain_core.tools import tool
 import requests
 from myutils.MySQLUtil import get_conn, close_conn
 from service import ReportService as rs
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 @tool
 def get_weather(location: str) -> str:
     """
@@ -90,6 +92,8 @@ def query_blood_cell_records(query_type: str, record_id: int = None, limit: int 
         if cursor and conn:
             close_conn(cursor, conn)
     
+
+
 @tool
 def generate_medical_report_tool(record_id: str) -> str:
     """
@@ -131,3 +135,70 @@ def generate_medical_report_tool(record_id: str) -> str:
         return f"报告生成过程中出现异常: {str(e)}"
 
 
+# 获取当前文件 (MCPTool.py) 的上一级再上一级的绝对路径，也就是 my_server/ 的根目录
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 向量数据库的真实路径 (my_server/chroma_medical_db)
+DB_DIR = os.path.join(BASE_DIR, "chroma_medical_db")
+
+# 本地 Embedding 模型的绝对路径 (你刚才下载好的)
+LOCAL_MODEL_PATH = "D:/Python_Project/huggingface_cache/bge-large-zh-v1.5"
+
+
+# ==========================================
+# 2. 初始化加载大模型与本地数据库
+# ==========================================
+print("正在加载 RAG 医疗知识库...")
+try:
+    # 加载本地词嵌入模型 (使用 cpu 即可，因为只是检索向量)
+    embeddings = HuggingFaceBgeEmbeddings(
+        model_name=LOCAL_MODEL_PATH,
+        model_kwargs={'device': 'cpu'}, 
+        encode_kwargs={'normalize_embeddings': True}
+    )
+
+    # 挂载本地 Chroma 数据库
+    vectorstore = Chroma(
+        persist_directory=DB_DIR,
+        embedding_function=embeddings
+    )
+    print("✅ RAG 医疗知识库加载完毕！")
+except Exception as e:
+    print(f"❌ RAG 知识库加载失败，请检查路径: {e}")
+    vectorstore = None
+
+
+# ==========================================
+# 3. 封装给大模型调用的工具 (Tool)
+# ==========================================
+@tool
+def search_medical_guidelines(query: str) -> str:
+    """
+    医学知识库检索工具。
+    当用户询问血细胞指标偏高、偏低的原因、临床意义，或者请求出具医学解读与建议时，必须调用此工具。
+    输入参数为用户的具体病理问题，例如：“血小板增多可能是什么疾病导致的？”或“红细胞偏少的原因”
+    返回结果为《临床血液学检验指南》中的权威文献片段。
+    """
+    if vectorstore is None:
+        return "系统内部错误：医疗知识库未成功加载，无法检索指南。"
+
+    try:
+        # 在向量数据库中检索最相关的 3 个医学文献块
+        docs = vectorstore.similarity_search(query, k=3)
+        print(f"AI 正在向医疗知识库检索 {len(docs)} 条结果...")
+        
+        if not docs:
+            return "知识库中未检索到与该问题相关的医学指南信息。"
+
+        # 将检索到的片段拼接成一段结构化的长文本
+        context_parts = []
+        for i, doc in enumerate(docs):
+            context_parts.append(f"[文献片段 {i+1}]:\n{doc.page_content}")
+
+        context = "\n\n".join(context_parts)
+        
+        # 加上前缀提示，告诉大模型这是权威指南，让它基于此回答
+        return f"以下是系统从《临床血液学检验指南》中检索到的权威内容，请严格结合这些内容为患者解答：\n\n{context}"
+        
+    except Exception as e:
+        return f"知识库检索过程发生异常: {str(e)}"
