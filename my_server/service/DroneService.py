@@ -34,7 +34,8 @@ def translate_result(result):
     "SNE": "分叶核中性粒细胞",
     }
     return {result_map.get(k, k): v for k, v in result.items()}
-#图片检测
+
+
 def detect_img(files, username):
     # 1. 确保核心文件夹存在（防止 FileNotFoundError）
     # 既然你要用 runs/detect，我们把它放在 static 下，这样前端才能直接访问
@@ -119,11 +120,12 @@ def detect_img(files, username):
                 "result_url": "/" + formatted_res_url,
                 "conf": conf_avg,
                 "details": translated_results, # 这里是 {'红细胞': 10, '血小板': 2}
-                "filename": file.name           # 保留原始文件名，前端好展示
+                "filename": file.name,           # 保留原始文件名，前端好展示
+                "infer_time": infer_time_ms,
             }
 
             # 准备数据并存入数据库
-            save_data = [origin_url, formatted_res_url, conf_avg, str(translated_results), username]
+            save_data = [origin_url, formatted_res_url, conf_avg, str(translated_results), infer_time_ms,username]
             
             try:
                 dd.save_result(save_data)
@@ -159,7 +161,8 @@ def find_data(page,size):
             "conf":item[3],
             "result":item[4],
             "username":item[5],
-            "createTime":item[6]
+            "createTime":item[6],
+            "inferTime":item[7],
         })
     return {
         'status': 200,
@@ -173,6 +176,7 @@ def find_data(page,size):
 
 # 实时监测
 def camera_detect(is_open):
+
     if is_open == "true":
         CameraUtil.open()
         #调用检测方法 返回一个生成器

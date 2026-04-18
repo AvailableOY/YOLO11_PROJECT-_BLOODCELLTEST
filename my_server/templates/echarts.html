@@ -1,79 +1,176 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YOLO11 检测数据分析平台</title>
-    <!-- 引入 Element-UI 样式 -->
+    <title>智能显微血细胞分析系统</title>
     <link rel="stylesheet" href="../static/element-ui/lib/theme-chalk/index.css">
-    <!-- 引入 Vue -->
     <script src="../static/js/vue.js"></script>
-    <!-- 引入 Element-UI -->
     <script src="../static/element-ui/lib/index.js"></script>
-    <!-- 引入 Axios -->
     <script src="../static/axios/dist/axios.js"></script>
-    <!-- 引入 echarts -->
     <script src="../static/js/echarts-5.3.3.js"></script>
 
     <style>
+        /* 全局重置与基础设置 */
         body {
             margin: 0;
             padding: 0;
-            background-color: #f0f2f5; /* 浅灰背景，护眼且显档次 */
-            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+            background-color: #F4F7F9; /* 更清爽的浅灰蓝色背景 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif;
+            color: #333;
         }
 
-
-        .main-container {
-            padding: 20px;
-        }
-
-        /* 统一图表容器高度 */
-        .chart-container {
-            height: 500px;
-            width: 100%;
-        }
-
-        .el-card {
-            margin-bottom: 20px;
-            border-radius: 8px; /* 圆角 */
+        /* 顶部医疗系统导航栏 */
+        .sys-header {
+            background-color: #ffffff;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
         }
         
+        .sys-header .logo-icon {
+            color: #2b73af; /* 医疗蓝 */
+            font-size: 28px;
+            margin-right: 12px;
+        }
+
+        .sys-header .sys-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            letter-spacing: 1px;
+        }
+
+        .main-container {
+            padding: 0 30px 30px 30px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* 卡片极简设计 */
+        .el-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important; /* 极柔和的阴影 */
+            transition: all 0.3s ease;
+        }
+
+        .el-card__header {
+            padding: 18px 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
         /* 标题样式微调 */
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-weight: bold;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2f3d;
+            border-left: 4px solid #2b73af; /* 左侧蓝色点缀线 */
+            padding-left: 10px;
+            line-height: 1.2;
+        }
+
+        /* 刷新按钮样式优化 */
+        .el-button--text {
+            color: #606266;
+            font-weight: normal;
+        }
+        .el-button--text:hover {
+            color: #2b73af;
+        }
+
+        /* 统一图表容器高度 */
+        .chart-container {
+            height: 450px;
+            width: 100%;
+        }
+        .kpi-card {
+            border: none;
+            border-radius: 12px;
+            text-align: center;
+            padding: 10px 0;
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+        }
+        .kpi-title {
+            font-size: 14px;
+            color: #8c98a4;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        .kpi-unit {
+            font-size: 14px;
+            color: #909399;
+            font-weight: normal;
         }
     </style>
 </head>
 
 <body>
     <div id="app">
+        <div class="sys-header">
+            <i class="el-icon-medal-1 logo-icon"></i>
+            <span class="sys-title">AI 智能显微分析中心</span>
+        </div>
 
         <div class="main-container">
-            <!-- 使用 Element UI 的栅格布局 (Row/Col) 代替 Float -->
-            <el-row :gutter="20">
+            <el-row :gutter="24" style="margin-bottom: 24px;">
+                <el-col :span="6" :xs="12">
+                    <el-card shadow="hover" class="kpi-card">
+                        <div class="kpi-title">累计处理切片</div>
+                        <div class="kpi-value">1,204 <span class="kpi-unit">张</span></div>
+                    </el-card>
+                </el-col>
+                <el-col :span="6" :xs="12">
+                    <el-card shadow="hover" class="kpi-card">
+                        <div class="kpi-title">检出细胞总数</div>
+                        <div class="kpi-value">35,892 <span class="kpi-unit">个</span></div>
+                    </el-card>
+                </el-col>
+                <el-col :span="6" :xs="12">
+                    <el-card shadow="hover" class="kpi-card">
+                        <div class="kpi-title">平均推理耗时</div>
+                        <div class="kpi-value">43.9 <span class="kpi-unit">ms</span></div>
+                    </el-card>
+                </el-col>
+                <el-col :span="6" :xs="12">
+                    <el-card shadow="hover" class="kpi-card">
+                        <div class="kpi-title">系统综合置信度</div>
+                        <div class="kpi-value">93.5 <span class="kpi-unit">%</span></div>
+                    </el-card>
+                </el-col>
+            </el-row>
+            <el-row :gutter="24">
                 
-                <!-- 左侧：柱状图 -->
                 <el-col :span="12" :xs="24">
-                    <el-card shadow="hover">
+                    <el-card shadow="never">
                         <div slot="header" class="card-header">
-                            <span><i class="el-icon-s-marketing"></i> 分类平均置信度排序 (Bar)</span>
-                            <el-button style="float: right; padding: 3px 0" type="text" icon="el-icon-refresh" @click="loadBar">刷新</el-button>
+                            <span class="card-title">分类平均置信度分析</span>
+                            <el-button type="text" icon="el-icon-refresh" @click="loadBar">更新数据</el-button>
                         </div>
                         <div id="bar" class="chart-container"></div>
                     </el-card>
                 </el-col>
 
-                <!-- 右侧：饼图 -->
                 <el-col :span="12" :xs="24">
-                    <el-card shadow="hover">
+                    <el-card shadow="never">
                         <div slot="header" class="card-header">
-                            <span><i class="el-icon-pie-chart"></i> 类别占比分析 (Pie)</span>
-                            <el-button style="float: right; padding: 3px 0" type="text" icon="el-icon-refresh" @click="loadPie">刷新</el-button>
+                            <span class="card-title">检出细胞类型占比分布</span>
+                            <el-button type="text" icon="el-icon-refresh" @click="loadPie">更新数据</el-button>
                         </div>
                         <div id="pie" class="chart-container"></div>
                     </el-card>
@@ -89,54 +186,54 @@
             data() {
                 return {
                     serverUrl: "http://127.0.0.1:8777/",
-                    barChart: null, // 保存chart实例，用于销毁或resize
+                    barChart: null,
                     pieChart: null
                 }
             },
             methods: {
                 loadBar() {
-                    // 初始化图表（如果在 mounted 已经初始化，这里只更新数据最好，但为了保持逻辑简单，先检查是否存在）
-                    if (this.barChart != null && this.barChart != "" && this.barChart != undefined) {
-                        this.barChart.dispose(); // 销毁旧图表防止内存溢出
-                    }
+                    if (this.barChart) this.barChart.dispose();
                     this.barChart = echarts.init(document.getElementById('bar'));
-
-                    // 显示 Loading 动画，提升体验
-                    this.barChart.showLoading();
+                    this.barChart.showLoading({ color: '#2b73af', text: '数据加载中...' }); // 定制 loading 颜色
 
                     axios({
                         url: this.serverUrl + "loadBar/",
                         method: "get"
                     }).then(res => {
-                        this.barChart.hideLoading(); // 隐藏 Loading
+                        this.barChart.hideLoading();
                         
                         let option = {
-                            // 增加标题
-                            // title: { text: '各类别识别数量', left: 'center' },
-                            // 增加鼠标悬浮提示 (关键)
                             tooltip: {
                                 trigger: 'axis',
-                                axisPointer: { type: 'shadow' }
+                                axisPointer: { type: 'none' }, // 去掉难看的灰色背景块
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                borderColor: '#e4e7ed',
+                                textStyle: { color: '#303133' }
                             },
-                            // 增加网格边距，防止文字被切断
-                            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                            grid: { left: '4%', right: '4%', bottom: '5%', top: '10%', containLabel: true },
                             xAxis: {
                                 type: 'category',
                                 data: res.data.data.xData,
-                                axisTick: { alignWithLabel: true }
+                                axisTick: { show: false }, // 隐藏刻度线
+                                axisLine: { lineStyle: { color: '#dcdfe6' } },
+                                axisLabel: { color: '#606266', margin: 12 }
                             },
-                            yAxis: { type: 'value' },
+                            yAxis: { 
+                                type: 'value',
+                                splitLine: { lineStyle: { type: 'dashed', color: '#ebeef5' } }, // 虚线网格，更干净
+                                axisLabel: { color: '#909399' }
+                            },
                             series: [{
-                                name: '数量',
+                                name: '置信度',
                                 data: res.data.data.yData,
                                 type: 'bar',
-                                barWidth: '60%',
+                                barWidth: '35%', // 柱子变细，更显精致
                                 itemStyle: {
-                                    // 渐变色美化
+                                    borderRadius: [4, 4, 0, 0], // 柱子顶部圆角
+                                    // 医疗风渐变蓝
                                     color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                        { offset: 0, color: '#83bff6' },
-                                        { offset: 0.5, color: '#188df0' },
-                                        { offset: 1, color: '#188df0' }
+                                        { offset: 0, color: '#5ab1ef' },
+                                        { offset: 1, color: '#2b73af' }
                                     ])
                                 }
                             }]
@@ -144,17 +241,14 @@
                         this.barChart.setOption(option);
                     }).catch(error => {
                         this.barChart.hideLoading();
-                        console.log(error);
-                        this.$message.warning("请求失败，已加载演示数据");
-                    })
+                        this.$message.warning("请求失败，无法加载置信度数据");
+                    });
                 },
 
                 loadPie() {
-                    if (this.pieChart != null && this.pieChart != "" && this.pieChart != undefined) {
-                        this.pieChart.dispose();
-                    }
+                    if (this.pieChart) this.pieChart.dispose();
                     this.pieChart = echarts.init(document.getElementById('pie'));
-                    this.pieChart.showLoading();
+                    this.pieChart.showLoading({ color: '#2b73af', text: '数据加载中...' });
 
                     axios({
                         url: this.serverUrl + "loadPie/",
@@ -162,27 +256,46 @@
                     }).then(res => {
                         this.pieChart.hideLoading();
                         let option = {
+                            // 医疗专业配色方案 (蓝、绿、青、紫、灰等沉稳色)
+                            color: ['#2b73af', '#36cbcb', '#4ecb73', '#fbd437', '#f2637b', '#975fe4', '#8c98a4'],
                             tooltip: {
                                 trigger: 'item',
-                                formatter: '{a} <br/>{b} : {c} ({d}%)' // 显示百分比
+                                formatter: '{b} : {c} ({d}%)',
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                borderColor: '#e4e7ed',
+                                textStyle: { color: '#303133' }
                             },
                             legend: {
-                                top: 'bottom'
-                            },
-                            toolbox: {
-                                show: true,
-                                feature: {
-                                    saveAsImage: { show: true }
-                                }
+                                bottom: '5%',
+                                left: 'center',
+                                icon: 'circle', // 图例改成小圆点
+                                itemWidth: 10,
+                                itemHeight: 10,
+                                textStyle: { color: '#606266' }
                             },
                             series: [{
                                 name: '分类占比',
                                 type: 'pie',
-                                radius: [40, 180], // 调整为圆环或合适大小
-                                center: ['50%', '50%'],
-                                roseType: 'area',
+                                radius: ['45%', '70%'], // 改为空心环形图，极其现代和干净
+                                center: ['50%', '42%'], // 稍微向上偏移，给底部图例留空间
+                                avoidLabelOverlap: true,
                                 itemStyle: {
-                                    borderRadius: 8
+                                    borderColor: '#fff', // 模块之间留白边
+                                    borderWidth: 2
+                                },
+                                label: {
+                                    show: false,
+                                    position: 'center'
+                                },
+                                emphasis: {
+                                    label: {
+                                        show: true,
+                                        fontSize: '18',
+                                        fontWeight: 'bold'
+                                    }
+                                },
+                                labelLine: {
+                                    show: false
                                 },
                                 data: res.data.data
                             }]
@@ -190,11 +303,10 @@
                         this.pieChart.setOption(option);
                     }).catch(error => {
                         this.pieChart.hideLoading();
-                        console.log(error);
+                        this.$message.warning("请求失败，无法加载占比数据");
                     });
                 },
                 
-                // 窗口大小改变时，重绘图表
                 handleResize() {
                     if (this.barChart) this.barChart.resize();
                     if (this.pieChart) this.pieChart.resize();
@@ -203,11 +315,9 @@
             mounted() {
                 this.loadBar();
                 this.loadPie();
-                // 优化 Resize 监听，移出 axios 回调
                 window.addEventListener('resize', this.handleResize);
             },
             beforeDestroy() {
-                // 页面销毁前移除监听，防止内存泄露
                 window.removeEventListener('resize', this.handleResize);
             }
         });

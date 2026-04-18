@@ -51,6 +51,7 @@
                     <el-descriptions-item label="检测时间">[[ currentRecord.createTime ]]</el-descriptions-item>
                     <el-descriptions-item label="检验医师">[[ currentRecord.username ]]</el-descriptions-item>
                     <el-descriptions-item label="平均置信度">[[ currentRecord.conf ]]</el-descriptions-item>
+                    <el-descriptions-item label="检测耗时">[[ currentRecord.inferTime ]]</el-descriptions-item>
                     <el-descriptions-item label="类别信息" :span="2">[[ currentRecord.result ]]</el-descriptions-item>
                 </el-descriptions>
 
@@ -72,7 +73,7 @@
             <span slot="footer" class="dialog-footer">
                 <el-button @click="dialogVisible = false">关 闭</el-button>
                 <el-button type="success" icon="el-icon-document" @click="generateReport" :loading="isGenerating">
-                    生成并下载 Word 报告
+                    打印检查报告
                 </el-button>
             </span>
         </el-dialog>
@@ -89,7 +90,7 @@
                 return {
                     serverURL: "http://127.0.0.1:8777/",
                     page: 1,  // 当前页码 默认第一页
-                    size: 2,  // 每页显示条数 默认每页显示2条
+                    size: 10,  // 每页显示条数 默认每页显示10条
                     tableData: [
 
                     ],
@@ -139,29 +140,124 @@
                     this.isGenerating = true; // 按钮变成转圈加载状态
 
                     axios({
-                        url: this.serverURL + "generate_report/", // 后端生成报告的接口地址
+                        url: this.serverURL + "generate_report/",
                         method: "post",
                         data: {
                             record_id: this.currentRecord.recordId
-                        },
-                        responseType: 'blob' // ⚠️ 极其重要！告诉浏览器这是一个二进制文件
+                        }
                     }).then(res => {
-                        // 利用 Blob 对象在前端强制触发文件下载
-                        const url = window.URL.createObjectURL(new Blob([res.data]));
-                        const link = document.createElement('a');
-                        link.href = url;
-                        // 动态设置下载的文件名
-                        link.setAttribute('download', `血细胞检测报告_${this.currentRecord.recordId}.docx`);
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
+                        if (res.data.status === 200) {
+                            // 拿到后端的原始 Markdown 文本
+                            const markdownText = res.data.report_content;
 
-                        this.$message.success('报告生成并下载成功！'); // Element-UI 的成功提示
+                            // 为了防止破坏 script 标签，处理一下闭合标签
+                            const safeMarkdown = markdownText.replace(/<\/script>/gi, '<\\/script>');
+
+                            // 打开新窗口
+                            const printWindow = window.open('', '_blank');
+
+                            // 向新窗口写入增强版的 HTML
+                            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="zh-CN">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>血细胞检测报告 - ${this.currentRecord.recordId}</title>
+                    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
+                    <style>
+                        /* 全局页面美化 */
+                        body { 
+                            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', sans-serif; 
+                            padding: 40px; 
+                            line-height: 1.8; 
+                            color: #2c3e50;
+                            max-width: 800px; /* 限制最大宽度，让排版更紧凑 */
+                            margin: 0 auto;
+                        }
+                        
+                        /* 报告大标题美化 */
+                        h1 { 
+                            text-align: center; 
+                            color: #000; 
+                            font-size: 28px;
+                            border-bottom: 2px solid #000; 
+                            padding-bottom: 15px; 
+                            margin-bottom: 30px; 
+                            letter-spacing: 2px;
+                        }
+                        
+                        /* 模块标题美化 */
+                        h2 { 
+                            color: #2980b9; 
+                            font-size: 20px;
+                            border-bottom: 1px solid #ddd; 
+                            padding-bottom: 8px; 
+                            margin-top: 30px; 
+                            margin-bottom: 15px;
+                        }
+                        
+                        h3 { font-size: 16px; color: #34495e; }
+                        
+                        /* 列表和段落排版优化 */
+                        ul { padding-left: 20px; }
+                        li { margin-bottom: 6px; }
+                        p { margin: 12px 0; }
+                        strong { color: #000; font-weight: bold; }
+                        
+                        /* 存放解析后内容的容器 */
+                        #content {
+                            background-color: #fff;
+                        }
+
+                        /* 专门针对打印机的样式 */
+                        @media print {
+                            body { padding: 0; max-width: 100%; }
+                            h2 { color: #000; /* 打印时为了清晰改为黑色 */ }
+                            /* 隐藏非打印必要元素，强制背景色打印 */
+                            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <script type="text/markdown" id="raw-markdown">
+                    ${safeMarkdown}
+                    <\/script>
+
+                    <div id="content">正在排版报告内容，请稍候...</div>
+                    
+                    <script>
+                        window.onload = function() {
+                            // 1. 获取原生的 Markdown 文本
+                            const rawText = document.getElementById('raw-markdown').textContent;
+                            
+                            // 2. 调用 marked 库解析为 HTML
+                            const htmlResult = marked.parse(rawText);
+                            
+                            // 3. 注入到页面容器中
+                            document.getElementById('content').innerHTML = htmlResult;
+                            
+                            // 4. 给浏览器一点点渲染时间，然后唤起打印
+                            setTimeout(() => {
+                                window.focus();
+                                window.print();
+                            }, 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+
+                            printWindow.document.close();
+                            this.$message.success('报告解析成功，正在唤起打印！');
+
+                        } else {
+                            this.$message.error('报告生成异常：' + (res.data.error || '未知错误'));
+                        }
                     }).catch(error => {
                         console.error(error);
-                        this.$message.error('报告生成失败，请检查后端日志。');
+                        this.$message.error('请求失败，请检查网络或后端状态。');
                     }).finally(() => {
-                        this.isGenerating = false; // 无论成功失败，恢复按钮状态
+                        this.isGenerating = false;
                     });
                 }
             },

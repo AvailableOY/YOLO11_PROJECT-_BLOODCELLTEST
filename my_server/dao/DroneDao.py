@@ -25,7 +25,11 @@ def save_result(data):
         insert into 表名 values
     '''
     try:
-        sql = "insert into `records` values(NULL,%s,%s,%s,%s,%s,now())"
+        sql = """
+            INSERT INTO `records` 
+            (origin_url, result_url, conf, result, infer_time, username, create_time) 
+            VALUES (%s, %s, %s, %s, %s, %s, now())
+        """
         cur.execute(sql, data)
     except Exception as e:
         print(e)
@@ -56,7 +60,7 @@ def find_data(page,size):
     cur = conn.cursor()
     start = (page - 1) * size
     #计算一共有多少数据
-    sql = "select * from `records` limit %s,%s;"
+    sql = "select * from `records` order by record_id desc limit %s,%s;"
     cur.execute(sql,[start,size])
     result = cur.fetchall()
     MySQLUtil.close_conn(cur, conn)

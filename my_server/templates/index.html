@@ -120,10 +120,6 @@
                             <i class="el-icon-menu"></i>
                             <span>系统首页</span>
                         </el-menu-item>
-                        <el-menu-item @click="goChat">
-                            <i class="el-icon-chat-dot-round"></i>
-                            <span>AI 智能问诊</span>
-                        </el-menu-item>
                         <el-submenu index="music">
                             <template slot="title">
                                 <i class="el-icon-user"></i>
@@ -131,8 +127,9 @@
                             </template>
                             <el-menu-item @click="changeIframeSrc('goDetectImg')">图片检测</el-menu-item>
                             <el-menu-item @click="changeIframeSrc('goDetectRecords')">图片检测记录</el-menu-item>
-                            <el-menu-item @click="changeIframeSrc('goVideoDetect')">视频监测</el-menu-item>
-                            <el-menu-item @click="changeIframeSrc('goCameraDetect')">实时监测</el-menu-item>
+                            <!-- <el-menu-item @click="changeIframeSrc('goVideoDetect')">视频监测</el-menu-item>
+                            <el-menu-item @click="changeIframeSrc('goCameraDetect')">实时监测</el-menu-item> -->
+                            <el-menu-item @click="changeIframeSrc('goChat')">智能助手</el-menu-item>
                             <el-menu-item @click="changeIframeSrc('goEcharts')">数据可视化</el-menu-item>
 
                         </el-submenu>
@@ -168,12 +165,9 @@
                     // 跳转界面
                     window.location.href = this.serverUrl;
                 },
-                goChat() {
-                    window.location.href = this.serverUrl+'goChat/';
-                }
             },
             mounted() {
-                // 加载当亲页面就获取这个值
+                // 加载当前页面就获取这个值
                 this.username = sessionStorage.getItem("username");
                 this.changeIframeSrc('/goWelcome/');
             }
